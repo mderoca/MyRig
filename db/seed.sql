@@ -1,0 +1,91 @@
+-- MyRig seed data - GENERATED FILE, DO NOT EDIT BY HAND.
+-- Source of truth: db/catalog.js   Regenerate with: npm run db:gen-seed
+-- Run db/schema.sql first, then this file.
+
+TRUNCATE parts, accessories, learning_cards, upgrade_rules RESTART IDENTITY;
+
+-- ---------- parts ----------
+INSERT INTO parts (name, category, price, tier, best_for, styles, reason) VALUES
+  ('Ryzen 5 5600', 'cpu', 130, 'budget', ARRAY['casual', 'balanced', 'competitive_fps']::TEXT[], ARRAY['any']::TEXT[], 'A cheap 6-core CPU that still keeps frame rates high in esports and casual games.'),
+  ('Ryzen 5 7600', 'cpu', 200, 'mid', ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Modern 6-core CPU that feeds a mid-range GPU without holding it back.'),
+  ('Intel i5 Class CPU', 'cpu', 210, 'mid', ARRAY['balanced', 'casual', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Well-rounded CPU for gaming plus everyday multitasking.'),
+  ('Intel i7 / Ryzen 7 Class CPU', 'cpu', 340, 'high', ARRAY['streaming', 'high_graphics', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Extra cores handle encoding a stream while the game keeps running smoothly.'),
+  ('RX 7600 Class GPU', 'gpu', 270, 'budget', ARRAY['casual', 'competitive_fps', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Strong value at 1080p, especially in lighter and competitive titles.'),
+  ('RTX 4060 Class GPU', 'gpu', 300, 'mid', ARRAY['competitive_fps', 'balanced', 'streaming']::TEXT[], ARRAY['any']::TEXT[], 'Good for 1080p competitive gaming and high FPS esports titles.'),
+  ('RTX 4070 / RX 7800 XT Class GPU', 'gpu', 520, 'high', ARRAY['high_graphics', 'streaming', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Comfortably drives 1440p with high settings in demanding modern games.'),
+  ('High-End RTX Class GPU', 'gpu', 800, 'ultra', ARRAY['high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Maximum visual quality - ray tracing and 1440p/4K in the heaviest games.'),
+  ('16GB DDR4 RAM', 'ram', 40, 'budget', ARRAY['casual', 'competitive_fps', 'balanced']::TEXT[], ARRAY['any']::TEXT[], '16GB is the comfortable minimum for modern gaming.'),
+  ('16GB DDR5 RAM', 'ram', 60, 'mid', ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Faster memory that pairs with current-generation CPUs.'),
+  ('32GB DDR5 RAM', 'ram', 110, 'high', ARRAY['streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Headroom for a game, a stream, a browser and Discord all at once.'),
+  ('500GB NVMe SSD', 'storage', 45, 'budget', ARRAY['casual', 'competitive_fps']::TEXT[], ARRAY['any']::TEXT[], 'Fast load times on a tight budget - enough for a few large games.'),
+  ('1TB NVMe SSD', 'storage', 70, 'mid', ARRAY['balanced', 'competitive_fps', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'The sweet spot: fast loading with room for a real game library.'),
+  ('2TB NVMe SSD', 'storage', 120, 'high', ARRAY['streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Big modern games and recorded footage fill space quickly.'),
+  ('Budget Airflow Case', 'case', 60, 'budget', ARRAY['casual', 'balanced', 'competitive_fps']::TEXT[], ARRAY['minimalist', 'esports', 'any']::TEXT[], 'Mesh front panel keeps temperatures low without spending much.'),
+  ('Black Minimalist Case', 'case', 85, 'mid', ARRAY['balanced', 'competitive_fps', 'high_graphics']::TEXT[], ARRAY['minimalist', 'esports']::TEXT[], 'Clean matte black shell with no lighting - stays out of the way.'),
+  ('White Clean Case', 'case', 95, 'mid', ARRAY['balanced', 'casual', 'high_graphics']::TEXT[], ARRAY['white', 'cozy']::TEXT[], 'A bright white shell that anchors a light, tidy desk.'),
+  ('RGB Glass Case', 'case', 100, 'mid', ARRAY['balanced', 'high_graphics', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Tempered glass side panel and RGB fans put the build on display.'),
+  ('1080p 75Hz Monitor', 'monitor', 110, 'budget', ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'Cheap and perfectly fine for relaxed, non-competitive games.'),
+  ('1080p 144Hz Monitor', 'monitor', 170, 'mid', ARRAY['competitive_fps', 'balanced', 'casual']::TEXT[], ARRAY['any']::TEXT[], 'High refresh rate makes aiming and tracking noticeably smoother.'),
+  ('1080p 240Hz Monitor', 'monitor', 260, 'high', ARRAY['competitive_fps']::TEXT[], ARRAY['esports', 'rgb', 'minimalist']::TEXT[], 'Built for esports - the lowest possible motion blur and input lag.'),
+  ('1440p 165Hz Monitor', 'monitor', 300, 'high', ARRAY['high_graphics', 'streaming', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Sharper image than 1080p while still staying fast enough for action games.');
+
+-- ---------- accessories ----------
+INSERT INTO accessories (name, category, price, best_for, styles, reason) VALUES
+  ('Budget Membrane Keyboard', 'keyboard', 30, ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'Does the job and leaves more of the budget for the parts that affect FPS.'),
+  ('Mechanical Keyboard (TKL)', 'keyboard', 70, ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['minimalist', 'esports']::TEXT[], 'Crisp mechanical switches, and the short layout frees up mouse space.'),
+  ('RGB Mechanical Keyboard', 'keyboard', 90, ARRAY['balanced', 'competitive_fps', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Per-key lighting that matches the rest of the RGB setup.'),
+  ('White Wireless Keyboard', 'keyboard', 85, ARRAY['casual', 'balanced']::TEXT[], ARRAY['white', 'cozy']::TEXT[], 'Wireless and white - keeps the desk clean with no visible cable.'),
+  ('Budget Gaming Mouse', 'mouse', 25, ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'A reliable sensor at a low price for relaxed play.'),
+  ('Lightweight Gaming Mouse', 'mouse', 50, ARRAY['competitive_fps', 'balanced']::TEXT[], ARRAY['esports', 'rgb', 'minimalist']::TEXT[], 'A light body makes fast flick shots easier and reduces wrist fatigue.'),
+  ('Wireless Mouse', 'mouse', 60, ARRAY['balanced', 'casual', 'streaming']::TEXT[], ARRAY['minimalist', 'white', 'cozy']::TEXT[], 'No cable drag, and nothing extra running across a clean desk.'),
+  ('Budget Gaming Headset', 'headset', 40, ARRAY['casual', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Clear game audio and a usable mic for voice chat.'),
+  ('Wireless Gaming Headset', 'headset', 100, ARRAY['competitive_fps', 'streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Good positional audio - hearing footsteps first is a real advantage.'),
+  ('USB Microphone', 'microphone', 70, ARRAY['streaming']::TEXT[], ARRAY['streamer', 'rgb', 'cozy']::TEXT[], 'Audio quality is what viewers notice first - it matters more than video.'),
+  ('1080p Webcam', 'webcam', 60, ARRAY['streaming']::TEXT[], ARRAY['streamer']::TEXT[], 'A face cam helps viewers connect with the stream.'),
+  ('Ring Light', 'lighting', 45, ARRAY['streaming']::TEXT[], ARRAY['streamer', 'white']::TEXT[], 'Even front lighting makes any webcam look dramatically better.'),
+  ('LED Light Strip', 'lighting', 25, ARRAY['balanced', 'casual', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Backlighting behind the desk adds the RGB glow with almost no cost.'),
+  ('Warm Desk Lamp', 'lighting', 35, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy', 'white']::TEXT[], 'Warm light is easier on the eyes during long evening sessions.'),
+  ('Desk Speakers', 'desk', 80, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy', 'white']::TEXT[], 'For the times you want the room filled with sound instead of a headset.'),
+  ('Plant & Decor Set', 'desk', 30, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy']::TEXT[], 'A plant and a few small pieces turn a computer desk into a space you enjoy.'),
+  ('Large Desk Mat', 'desk', 25, ARRAY['competitive_fps', 'balanced', 'casual', 'high_graphics', 'streaming']::TEXT[], ARRAY['any']::TEXT[], 'A consistent surface for low-sensitivity aiming, and it tidies the desk.'),
+  ('Cable Management Kit', 'desk', 20, ARRAY['balanced', 'competitive_fps', 'casual', 'high_graphics', 'streaming']::TEXT[], ARRAY['minimalist', 'white', 'esports', 'any']::TEXT[], 'The cheapest upgrade that makes a setup look finished.');
+
+-- ---------- learning_cards ----------
+INSERT INTO learning_cards (title, short_description, beginner_description, category) VALUES
+  ('CPU', 'The CPU is the brain of the computer. It handles game logic, background apps and anything that is not drawing the picture.', 'The CPU is like the brain of the computer. It helps games, apps and background tasks run smoothly. For most gaming you do not need the most expensive one - you need one that is fast enough not to hold your graphics card back.', 'cpu'),
+  ('GPU', 'The GPU handles graphics. For gaming this is usually the most important part. A stronger GPU helps games run smoother and look better.', 'The GPU (graphics card) draws everything you see on screen. If you only have money to upgrade one part, this is almost always the one that gives you the biggest jump in frame rate and visual quality.', 'gpu'),
+  ('RAM', 'RAM is short-term memory. It holds what the computer is actively using right now. 16GB is the comfortable minimum for gaming.', 'RAM is like your desk space - the more you have, the more you can keep open at once. More RAM does not make games faster on its own, but too little RAM makes everything stutter.', 'ram'),
+  ('SSD Storage', 'An NVMe SSD is fast storage. It is what makes games and Windows load in seconds instead of minutes.', 'Storage is where your games live. An SSD is much faster than an old hard drive, so levels load quicker. Games are big now, so 1TB fills up faster than you expect.', 'storage'),
+  ('Monitor Refresh Rate', 'Refresh rate (Hz) is how many times per second the screen updates. 144Hz feels much smoother than 60Hz.', 'A 60Hz monitor shows 60 images a second; a 144Hz monitor shows 144. Higher refresh rate makes motion clearer and aiming easier. It only helps if your PC can actually produce that many frames.', 'monitor'),
+  ('1080p vs 1440p', '1080p is easier to run and better for high frame rates. 1440p is sharper but asks more from the GPU.', 'Resolution is how many pixels the screen has. 1440p looks sharper than 1080p, but your graphics card has to work harder to fill those extra pixels. Competitive players often stay at 1080p to keep frame rates high.', 'monitor'),
+  ('Why Peripherals Matter', 'Your keyboard, mouse, headset and chair are what you actually touch. They affect the experience as much as the parts inside the case.', 'You never touch your GPU, but your hands are on your mouse for every hour you play. A good mouse and a comfortable seat change how the setup feels far more than a small spec bump inside the tower.', 'peripherals'),
+  ('Why Airflow Matters', 'Parts slow themselves down when they get too hot. Good airflow keeps them running at full speed.', 'When components overheat they deliberately slow down to protect themselves, which means lower FPS. A case with a mesh front and a couple of fans keeps air moving so that never happens.', 'case'),
+  ('What To Upgrade First', 'Usually the GPU, then the monitor. Upgrade the part that is limiting you, not the part that is easiest to buy.', 'If games look bad or run slowly, upgrade the GPU. If games run fast but the screen feels choppy, upgrade the monitor. If everything stutters when you have Discord and a browser open, add RAM.', 'upgrade');
+
+-- ---------- upgrade_rules ----------
+INSERT INTO upgrade_rules (condition_type, condition_value, upgrade_name, priority, estimated_cost, reason) VALUES
+  ('budget_tier', 'budget', 'Upgrade the GPU', 'High', 350, 'The graphics card is the first thing that limits a budget build. Moving up one tier is the single biggest FPS gain available to you.'),
+  ('budget_tier', 'budget', 'Add more SSD storage', 'Medium', 70, 'Modern games are 80-150GB each. A second SSD stops you uninstalling games to make room.'),
+  ('budget_tier', 'budget', 'Upgrade to a 144Hz monitor', 'Medium', 170, 'Once the PC can push more frames, a faster screen is what lets you actually see them.'),
+  ('budget_tier', 'budget', 'Add RGB lighting and cable management', 'Low', 45, 'Cheap finishing touches that make the setup feel intentional rather than temporary.'),
+  ('budget_tier', 'balanced', 'Add a second monitor', 'Medium', 200, 'Useful for streaming, multitasking and Discord while gaming.'),
+  ('budget_tier', 'high', 'Upgrade to a better chair', 'Medium', 250, 'At this budget the PC is no longer the weak link. Comfort over long sessions is what is left to improve.'),
+  ('gaming_goal', 'competitive_fps', 'Upgrade to a 240Hz monitor', 'High', 260, 'In competitive shooters, lower motion blur and input lag is a direct advantage.'),
+  ('gaming_goal', 'competitive_fps', 'Upgrade to a pro-grade lightweight mouse', 'Medium', 80, 'A lighter, wireless mouse improves aim consistency more than most internal upgrades.'),
+  ('gaming_goal', 'competitive_fps', 'Improve desk space and cable management', 'Low', 40, 'Low-sensitivity aiming needs room to move. A clear desk is genuinely part of the setup.'),
+  ('gaming_goal', 'high_graphics', 'Upgrade the GPU', 'High', 500, 'Visual quality scales almost entirely with the graphics card.'),
+  ('gaming_goal', 'high_graphics', 'Move from 1080p to 1440p', 'High', 300, 'A sharper screen is what lets you actually see the detail the GPU is rendering.'),
+  ('gaming_goal', 'high_graphics', 'Add more SSD storage', 'Medium', 120, 'Graphically heavy games are the largest ones. They fill a 1TB drive quickly.'),
+  ('gaming_goal', 'streaming', 'Add a second monitor', 'High', 200, 'Useful for streaming, multitasking and Discord while gaming.'),
+  ('gaming_goal', 'streaming', 'Upgrade to an XLR microphone setup', 'Medium', 200, 'Audio is the first thing viewers judge. It is worth more than a camera upgrade.'),
+  ('gaming_goal', 'streaming', 'Add a stream deck', 'Low', 100, 'Scene switching without alt-tabbing keeps the stream looking professional.'),
+  ('gaming_goal', 'casual', 'Upgrade the GPU later', 'Medium', 300, 'If your taste in games grows into heavier titles, the GPU is what you replace first.'),
+  ('gaming_goal', 'balanced', 'Upgrade to a 1440p monitor', 'Medium', 300, 'A balanced build usually has GPU headroom left for a sharper screen.'),
+  ('setup_style', 'cozy', 'Add warm ambient lighting', 'Medium', 50, 'Warm bias lighting behind the desk is the core of a cozy setup.'),
+  ('setup_style', 'cozy', 'Add desk speakers', 'Low', 80, 'Not every session should need a headset on your head.'),
+  ('setup_style', 'cozy', 'Upgrade to a better chair', 'High', 250, 'Comfort is the whole point of a cozy setup, and the chair decides it.'),
+  ('setup_style', 'rgb', 'Add RGB fans and a light bar', 'Low', 70, 'Synced lighting across case, desk and wall is what pulls an RGB setup together.'),
+  ('setup_style', 'streamer', 'Add a green screen', 'Low', 90, 'A clean camera cutout makes a small stream look far more produced.'),
+  ('setup_style', 'minimalist', 'Add a monitor arm', 'Medium', 90, 'Lifting the monitor off its stand clears the desk and hides the cable.'),
+  ('setup_style', 'white', 'Add a white monitor arm and cable covers', 'Low', 110, 'A white setup only reads as clean when the cables disappear too.'),
+  ('setup_style', 'esports', 'Add a low-distraction desk layout', 'Low', 60, 'A large mat, no clutter and neutral lighting keep attention on the screen.');

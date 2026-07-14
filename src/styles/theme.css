@@ -1,0 +1,105 @@
+/* ---------------------------------------------------------------------------
+   MyRig theme tokens - "Cyber Setup / Dark Gaming Lifestyle"
+
+   Every colour, radius and spacing value in the app comes from this file.
+   To re-skin the app to match an updated design, change the values here and
+   the whole UI follows. Components must not hardcode hex colours.
+--------------------------------------------------------------------------- */
+
+:root {
+  /* Core palette (from the design spec) */
+  --bg: #0b0f19;
+  --surface: #111827;
+  --surface-light: #1f2937;
+  --primary: #7c3aed;
+  --secondary: #22d3ee;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --text: #f9fafb;
+  --muted: #9ca3af;
+
+  /* Derived tones */
+  --primary-soft: rgba(124, 58, 237, 0.15);
+  --primary-hover: #8b5cf6;
+  --secondary-soft: rgba(34, 211, 238, 0.12);
+  --success-soft: rgba(16, 185, 129, 0.14);
+  --warning-soft: rgba(245, 158, 11, 0.14);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.12);
+  --border: rgba(249, 250, 251, 0.08);
+  --border-strong: rgba(249, 250, 251, 0.16);
+
+  /* Type */
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+
+  /* Shape + depth */
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --glow-primary: 0 0 0 1px rgba(124, 58, 237, 0.4), 0 8px 30px rgba(124, 58, 237, 0.25);
+  --glow-secondary: 0 0 0 1px rgba(34, 211, 238, 0.45), 0 8px 30px rgba(34, 211, 238, 0.18);
+
+  /* Rhythm */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --page-max: 1120px;
+}
+
+/* ---------------------------------------------------------------------------
+   Setup-style accent themes.
+
+   The recommendation page sets data-style="rgb" | "minimalist" | ... on a
+   wrapper element. That swaps the accent colours only, so the same components
+   take on the "vibe" of the setup style the user picked.
+--------------------------------------------------------------------------- */
+
+[data-style='rgb'] {
+  --accent-a: #7c3aed;
+  --accent-b: #22d3ee;
+  --accent-c: #ec4899;
+  --style-label: 'RGB Gamer';
+}
+
+[data-style='minimalist'] {
+  --accent-a: #e5e7eb;
+  --accent-b: #9ca3af;
+  --accent-c: #4b5563;
+  --style-label: 'Minimalist Black';
+}
+
+[data-style='white'] {
+  --accent-a: #f9fafb;
+  --accent-b: #93c5fd;
+  --accent-c: #cbd5e1;
+  --style-label: 'White Clean';
+}
+
+[data-style='cozy'] {
+  --accent-a: #f59e0b;
+  --accent-b: #fcd34d;
+  --accent-c: #d6b28a;
+  --style-label: 'Cozy';
+}
+
+[data-style='streamer'] {
+  --accent-a: #a855f7;
+  --accent-b: #ec4899;
+  --accent-c: #22d3ee;
+  --style-label: 'Streamer';
+}
+
+[data-style='esports'] {
+  --accent-a: #ef4444;
+  --accent-b: #22d3ee;
+  --accent-c: #f9fafb;
+  --style-label: 'Esports';
+}
