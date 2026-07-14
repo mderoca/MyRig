@@ -62,57 +62,56 @@ the app means editing one file, not hunting utility classes through 30 component
 
 ## Run it locally
 
+### Prerequisites
+
+| | |
+|---|---|
+| **Node.js 18 or newer** | Check with `node -v`. Developed on v24.13.0. Get it from <https://nodejs.org>. |
+| **npm** | Ships with Node. Check with `npm -v`. |
+| **A Neon account** | Free. <https://neon.tech> — this is where the database lives. |
+| **A RAWG API key** | Free. <https://rawg.io/apidocs> — this is where game search comes from. |
+
+You do **not** need the Vercel CLI, Docker, or a local Postgres install.
+
+### Step 1 — Get the code and install dependencies
+
 ```bash
-cd D:\HemlockOakProjects\MyRig
+git clone https://github.com/mderoca/MyRig.git
+cd MyRig
 npm install
-cp .env.example .env      # then fill in the three values below
-npm run db:setup          # creates the tables in Neon and seeds the catalog
-npm run dev               # http://localhost:5173
 ```
 
-`npm run dev` serves the frontend **and** the `/api` routes. You do **not** need the Vercel
-CLI — `vite.config.js` contains a middleware (`vercelApiDevServer`) that runs the files in
-`/api` locally with the same `req.query` / `req.body` / `res.status().json()` contract
-Vercel gives them in production.
+That installs six runtime dependencies (`vue`, `vue-router`, `pinia`,
+`@neondatabase/serverless`, `bcryptjs`, `jose`) and three build ones (`vite`,
+`@vitejs/plugin-vue`, `dotenv`). It takes a few seconds and needs no global installs.
 
-There is no seeded user. **Register an account in the app** to create the first one.
+### Step 2 — Create your `.env`
 
-### Environment variables
+Copy the template and fill in the three values:
 
-All three are **server-side only**. None is ever sent to the browser.
+```bash
+cp .env.example .env      # Windows PowerShell: copy .env.example .env
+```
 
-| Name | Where to get it |
+| Variable | Where to get it |
 |---|---|
-| `RAWG_API_KEY` | Free key from <https://rawg.io/apidocs> |
-| `DATABASE_URL` | Neon dashboard → your project → *Connection string* (use the **pooled** one) |
-| `AUTH_SECRET` | Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `DATABASE_URL` | Neon dashboard → your project → **Connection string** → use the **pooled** one. Looks like `postgresql://user:pass@host/db?sslmode=require`. |
+| `RAWG_API_KEY` | Sign up at <https://rawg.io/apidocs>, the key is on your profile page. |
+| `AUTH_SECRET` | Generate one: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` and paste the output. |
 
-`AUTH_SECRET` signs the session cookies. It must be **at least 32 characters**; the app
-refuses to start a session otherwise. Changing it signs everyone out. Use a *different*
-value in production than in dev.
+All three are **server-side only** — they are read inside the API routes and never sent to
+the browser. `AUTH_SECRET` signs the session cookies and must be **at least 32 characters**;
+the app refuses to start a session otherwise.
 
-Put them in `.env` locally, and in **Vercel → Settings → Environment Variables** for
-production. `.env` is gitignored; never commit it.
+`.env` is gitignored. **Never commit it.**
 
-### What "working" looks like
+### Step 3 — Create the database tables
 
-- `npm run build` → `✓ built in ~600ms`, writes `dist/`.
-- `npm run check` → the engine check (5 quizzes) and the auth check (27 assertions), all passing.
-- Without the env vars set, every route fails **loudly and clearly** rather than crashing:
-  ```
-  GET  /api/products     → 503 {"error":"The database is not configured. ..."}
-  POST /api/auth/login   → 503 {"error":"The database is not configured. ..."}
-  GET  /api/auth/me      → 200 {"user":null}      # signed out is not an error
-  ```
+```bash
+npm run db:setup
+```
 
----
-
-## Set up Neon
-
-1. Create a free project at <https://neon.tech>. (Verified 2026-07-14 — re-check the free
-   tier before relying on it.)
-2. Copy the **pooled** connection string into `DATABASE_URL` in `.env`.
-3. Run `npm run db:setup`. Expected output:
+Expected output:
 
 ```
 Applying schema...
@@ -124,10 +123,77 @@ Done. Seeded 40 products, 9 learning cards, 25 upgrade rules.
 Register an account in the app to create your first user.
 ```
 
-**`db/catalog.js` is the single source of truth for catalog data.** To change what MyRig
-sells or recommends, edit that file and re-run `npm run db:setup`. `db/seed.sql` is a
-*generated* file (`npm run db:gen-seed`) — it exists so you can paste the catalog straight
-into the Neon SQL Editor. Do not hand-edit it.
+### Step 4 — Run it
+
+```bash
+npm run dev
+```
+
+Open **<http://localhost:5173>**.
+
+`npm run dev` serves the frontend **and** the `/api` routes together. `vite.config.js`
+contains a middleware (`vercelApiDevServer`) that runs the files in `/api` locally with the
+same `req.query` / `req.body` / `res.status().json()` contract Vercel gives them in
+production — which is why the Vercel CLI is not needed.
+
+There is no seeded user. **Register an account in the app** to create the first one.
+
+### Verify it is actually working
+
+```bash
+npm run check     # engine check (5 quizzes) + auth check (27 assertions) — no DB needed
+npm run build     # should print: ✓ built in ~600ms
+```
+
+Then in the browser: register an account → search a game in the quiz → generate a setup →
+add it to the cart → place an order. If all five work, everything is wired up.
+
+### If something is not working
+
+| Symptom | Cause |
+|---|---|
+| Pages load, but the shop/quiz show *"The database is not configured"* | `DATABASE_URL` missing from `.env`, or `npm run db:setup` was never run. |
+| Game search says *"RAWG_API_KEY is not set on the server"* | `RAWG_API_KEY` missing from `.env`. |
+| Sign-in fails with a 500 about `AUTH_SECRET` | `AUTH_SECRET` missing, or shorter than 32 characters. |
+| Changed `.env` but nothing happened | Restart `npm run dev` — env vars are read at startup. |
+| `relation "products" does not exist` | Run `npm run db:setup`. |
+
+Every route fails loudly rather than silently when config is missing — that is deliberate:
+
+```
+GET  /api/products     → 503 {"error":"The database is not configured. ..."}
+POST /api/auth/login   → 503 {"error":"The database is not configured. ..."}
+GET  /api/auth/me      → 200 {"user":null}      # being signed out is not an error
+```
+
+### All the npm scripts
+
+| Command | Does |
+|---|---|
+| `npm run dev` | Dev server + API routes on :5173 |
+| `npm run build` | Production build into `dist/` |
+| `npm run preview` | Serve the built `dist/` (no API routes) |
+| `npm run check` | Both checks below |
+| `npm run check:engine` | 5 quizzes through the recommendation engine |
+| `npm run check:auth` | 27 assertions on hashing, sessions, CSRF |
+| `npm run db:setup` | Create + seed the Neon tables (**drops existing tables**) |
+| `npm run db:gen-seed` | Regenerate `db/seed.sql` from `db/catalog.js` |
+
+---
+
+## Changing the catalog
+
+Getting the database *running* is Steps 2–3 above. This is about changing what is *in* it.
+
+**`db/catalog.js` is the single source of truth.** To change what MyRig sells or recommends,
+edit that file and re-run `npm run db:setup`.
+
+`db/seed.sql` is a **generated** file (`npm run db:gen-seed`). It exists so the catalog can
+be pasted straight into the Neon SQL Editor without running Node. Do not hand-edit it —
+your changes are lost the next time anyone regenerates it.
+
+Neon's free tier was adequate for this project as of 2026-07-14 — re-check before relying
+on it.
 
 ---
 
