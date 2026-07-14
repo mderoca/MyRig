@@ -3,15 +3,18 @@
  *
  *   npm run db:gen-seed
  *
- * seed.sql is a committed build artifact - it exists so the schema and data can
- * be pasted straight into the Neon SQL Editor without running Node. Edit
+ * seed.sql is a committed build artifact - it exists so the catalog can be
+ * pasted straight into the Neon SQL Editor without running Node. Edit
  * catalog.js and re-run this; do not hand-edit seed.sql.
+ *
+ * It seeds the catalog only. Users, orders, wishlists and saved builds are
+ * created by using the app.
  */
 
 import { writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { PARTS, ACCESSORIES, LEARNING_CARDS, UPGRADE_RULES } from './catalog.js'
+import { PRODUCTS, LEARNING_CARDS, UPGRADE_RULES } from './catalog.js'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -21,25 +24,22 @@ const str = (value) => `'${String(value).replace(/'/g, "''")}'`
 /** Postgres text[] literal, e.g. ARRAY['rgb','streamer']::TEXT[] */
 const arr = (values) => `ARRAY[${values.map(str).join(', ')}]::TEXT[]`
 
+/** NULL, or a quoted string. */
+const nullable = (value) => (value === null || value === undefined ? 'NULL' : str(value))
+
 const lines = [
-  '-- MyRig seed data - GENERATED FILE, DO NOT EDIT BY HAND.',
+  '-- MyRig catalog seed - GENERATED FILE, DO NOT EDIT BY HAND.',
   '-- Source of truth: db/catalog.js   Regenerate with: npm run db:gen-seed',
   '-- Run db/schema.sql first, then this file.',
   '',
-  'TRUNCATE parts, accessories, learning_cards, upgrade_rules RESTART IDENTITY;',
+  'TRUNCATE products, learning_cards, upgrade_rules RESTART IDENTITY CASCADE;',
   '',
-  '-- ---------- parts ----------',
-  'INSERT INTO parts (name, category, price, tier, best_for, styles, reason) VALUES',
-  PARTS.map(
+  '-- ---------- products ----------',
+  'INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason) VALUES',
+  PRODUCTS.map(
     (p) =>
-      `  (${str(p.name)}, ${str(p.category)}, ${p.price}, ${str(p.tier)}, ${arr(p.best_for)}, ${arr(p.styles)}, ${str(p.reason)})`
-  ).join(',\n') + ';',
-  '',
-  '-- ---------- accessories ----------',
-  'INSERT INTO accessories (name, category, price, best_for, styles, reason) VALUES',
-  ACCESSORIES.map(
-    (a) =>
-      `  (${str(a.name)}, ${str(a.category)}, ${a.price}, ${arr(a.best_for)}, ${arr(a.styles)}, ${str(a.reason)})`
+      `  (${str(p.name)}, ${str(p.category)}, ${str(p.kind)}, ${p.price}, ${nullable(p.tier)}, ` +
+      `${arr(p.best_for)}, ${arr(p.styles)}, ${str(p.reason)})`
   ).join(',\n') + ';',
   '',
   '-- ---------- learning_cards ----------',
@@ -53,7 +53,8 @@ const lines = [
   'INSERT INTO upgrade_rules (condition_type, condition_value, upgrade_name, priority, estimated_cost, reason) VALUES',
   UPGRADE_RULES.map(
     (r) =>
-      `  (${str(r.condition_type)}, ${str(r.condition_value)}, ${str(r.upgrade_name)}, ${str(r.priority)}, ${r.estimated_cost}, ${str(r.reason)})`
+      `  (${str(r.condition_type)}, ${str(r.condition_value)}, ${str(r.upgrade_name)}, ` +
+      `${str(r.priority)}, ${r.estimated_cost}, ${str(r.reason)})`
   ).join(',\n') + ';',
   '',
 ]
@@ -61,6 +62,6 @@ const lines = [
 writeFileSync(join(here, 'seed.sql'), lines.join('\n'), 'utf8')
 
 console.log(
-  `Wrote db/seed.sql - ${PARTS.length} parts, ${ACCESSORIES.length} accessories, ` +
-    `${LEARNING_CARDS.length} learning cards, ${UPGRADE_RULES.length} upgrade rules.`
+  `Wrote db/seed.sql - ${PRODUCTS.length} products, ${LEARNING_CARDS.length} learning cards, ` +
+    `${UPGRADE_RULES.length} upgrade rules.`
 )

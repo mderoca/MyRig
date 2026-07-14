@@ -8,6 +8,8 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useSetupStore } from '../stores/setupStore.js'
+import { useAuthStore } from '../stores/authStore.js'
+import { useCartStore } from '../stores/cartStore.js'
 import RecommendationCard from '../components/RecommendationCard.vue'
 import BudgetBreakdown from '../components/BudgetBreakdown.vue'
 import StyleSummary from '../components/StyleSummary.vue'
@@ -16,6 +18,8 @@ import UpgradePath from '../components/UpgradePath.vue'
 import ErrorMessage from '../components/ErrorMessage.vue'
 
 const store = useSetupStore()
+const auth = useAuthStore()
+const cart = useCartStore()
 const router = useRouter()
 
 const setup = computed(() => store.setup)
@@ -52,6 +56,12 @@ const defaultName = computed(() => {
 })
 
 async function saveBuild() {
+  // Saving needs an account. The setup itself survives the round trip, because
+  // it is mirrored into localStorage - they come back to exactly this page.
+  if (!auth.isSignedIn) {
+    return router.push({ name: 'login', query: { redirect: '/recommendation' } })
+  }
+
   saving.value = true
   saveError.value = ''
 
@@ -63,6 +73,12 @@ async function saveBuild() {
   } finally {
     saving.value = false
   }
+}
+
+/** The whole setup, straight into the cart - the engine only ever recommends real products. */
+function addSetupToCart() {
+  cart.addMany(setup.value.items)
+  router.push({ name: 'cart' })
 }
 
 function startOver() {
@@ -102,6 +118,7 @@ function startOver() {
         </div>
 
         <div class="head-actions">
+          <button class="btn" @click="addSetupToCart">Add setup to cart</button>
           <button class="btn btn-ghost" @click="startOver">Start over</button>
         </div>
       </div>
@@ -152,8 +169,8 @@ function startOver() {
         <template v-if="!saved">
           <h2>Save this build</h2>
           <p class="muted">
-            Stored in the database against this browser. No account, no email - come back
-            any time and it will still be in
+            Kept against your account, with the parts, scores and upgrade path exactly as
+            they are now. Come back any time and it will be in
             <RouterLink to="/builds">Saved Builds</RouterLink>.
           </p>
 
@@ -167,9 +184,13 @@ function startOver() {
               aria-label="Build name"
             />
             <button class="btn" :disabled="saving" @click="saveBuild">
-              {{ saving ? 'Saving...' : 'Save Build' }}
+              {{ saving ? 'Saving...' : auth.isSignedIn ? 'Save Build' : 'Sign in to save' }}
             </button>
           </div>
+
+          <p v-if="!auth.isSignedIn" class="muted small">
+            Your setup is kept while you sign in - you will land right back here.
+          </p>
 
           <ErrorMessage v-if="saveError" :message="saveError" class="save-error" />
         </template>
@@ -260,6 +281,11 @@ function startOver() {
 .save-error {
   margin-top: var(--space-4);
   text-align: left;
+}
+
+.small {
+  font-size: 0.8125rem;
+  margin-top: var(--space-3);
 }
 
 .saved-title {

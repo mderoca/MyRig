@@ -1,10 +1,10 @@
 /**
- * Loads the catalog tables out of Neon.
+ * Loads the catalog out of Neon.
  *
- * Everything the recommendation engine chooses from lives in the database -
- * parts, accessories, learning cards and upgrade rules. Changing what MyRig
- * recommends is a data change (edit db/catalog.js, re-run `npm run db:setup`),
- * not a code change.
+ * The store and the recommendation engine read the SAME `products` table - the
+ * engine just wants it split back into parts and accessories, which is what
+ * loadCatalog() does. Changing what MyRig sells or recommends is a data change
+ * (edit db/catalog.js, re-run `npm run db:setup`), not a code change.
  */
 
 import { sql, hasDatabase } from '../../db/connection.js'
@@ -19,22 +19,39 @@ export class DatabaseNotConfigured extends Error {
 }
 
 /** Postgres NUMERIC comes back as a string - make prices numbers again. */
-const withNumericPrice = (row) => ({ ...row, price: Number(row.price) })
+export const withNumericPrice = (row) => ({ ...row, price: Number(row.price) })
 
-export async function loadCatalog() {
+export function assertDatabase() {
   if (!hasDatabase) throw new DatabaseNotConfigured()
+}
 
-  const [parts, accessories, learningCards, upgradeRules] = await Promise.all([
-    sql`SELECT id, name, category, price, tier, best_for, styles, reason FROM parts ORDER BY category, price`,
-    sql`SELECT id, name, category, price, best_for, styles, reason FROM accessories ORDER BY category, price`,
-    sql`SELECT id, title, short_description, beginner_description, category FROM learning_cards ORDER BY id`,
-    sql`SELECT id, condition_type, condition_value, upgrade_name, priority, estimated_cost, reason FROM upgrade_rules ORDER BY id`,
+/** Every product, split the way the recommendation engine expects. */
+export async function loadCatalog() {
+  assertDatabase()
+
+  const [products, learningCards, upgradeRules] = await Promise.all([
+    sql`SELECT id, name, category, kind, price, tier, best_for, styles, reason, in_stock
+        FROM products
+        WHERE in_stock = TRUE
+        ORDER BY category, price`,
+    sql`SELECT id, title, short_description, beginner_description, category
+        FROM learning_cards
+        ORDER BY id`,
+    sql`SELECT id, condition_type, condition_value, upgrade_name, priority, estimated_cost, reason
+        FROM upgrade_rules
+        ORDER BY id`,
   ])
 
+  const priced = products.map(withNumericPrice)
+
   return {
-    parts: parts.map(withNumericPrice),
-    accessories: accessories.map(withNumericPrice),
+    products: priced,
+    parts: priced.filter((p) => p.kind === 'part'),
+    accessories: priced.filter((p) => p.kind === 'accessory'),
     learningCards,
-    upgradeRules: upgradeRules.map((r) => ({ ...r, estimated_cost: Number(r.estimated_cost) })),
+    upgradeRules: upgradeRules.map((rule) => ({
+      ...rule,
+      estimated_cost: Number(rule.estimated_cost),
+    })),
   }
 }

@@ -11,7 +11,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as api from '../services/api.js'
-import { getUserId } from '../services/user.js'
 
 const STORAGE_KEY = 'myrig_state'
 
@@ -129,12 +128,15 @@ export const useSetupStore = defineStore('setup', () => {
     }
   }
 
-  /** Saves the current setup to Neon against this browser's demo user id. */
+  /**
+   * Saves the current setup to Neon against the signed-in user.
+   * Requires an account - the server takes the user from the session cookie, so
+   * there is no user id to pass here. Throws a 401 if signed out.
+   */
   async function save(buildName) {
     if (!setup.value) throw new Error('There is no setup to save yet.')
 
     return api.saveBuild({
-      userId: getUserId(),
       buildName,
       selectedGames: selectedGames.value,
       budgetTier: budgetTier.value,

@@ -8,12 +8,16 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "node scripts/engine-check.mjs",
+    "check": "node scripts/engine-check.mjs && node scripts/auth-check.mjs",
+    "check:engine": "node scripts/engine-check.mjs",
+    "check:auth": "node scripts/auth-check.mjs",
     "db:setup": "node db/setup.js",
     "db:gen-seed": "node db/generate-seed.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "bcryptjs": "^3.0.3",
+    "jose": "^6.2.3",
     "pinia": "^2.2.6",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

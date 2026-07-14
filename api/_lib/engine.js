@@ -749,6 +749,9 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
     learningCards.find((c) => c.category === category)?.beginner_description || null
 
   const items = picked.map((item) => ({
+    // The product id, so a recommended setup can be added straight to the cart.
+    // The engine recommends things you can actually buy - same table, same rows.
+    id: item.id ?? null,
     name: item.name,
     category: item.category,
     group: GROUP_OF[item.category] || 'desk',

@@ -4,11 +4,11 @@
  *   npm run db:setup
  *
  * Creates the tables from schema.sql (dropping them first if they exist), then
- * seeds parts, accessories, learning cards and upgrade rules from catalog.js.
+ * seeds the catalog from catalog.js.
  *
- * Saved builds are NOT touched by the seed, but schema.sql drops the table, so
- * running this wipes any saved builds. That is fine for a demo; do not run it
- * against anything you want to keep.
+ * WARNING: schema.sql DROPs every table, including users, orders and
+ * saved_builds. Running this wipes all accounts and all order history. That is
+ * fine for a demo. Do not run it against anything you want to keep.
  */
 
 import { readFileSync } from 'node:fs'
@@ -30,14 +30,14 @@ if (!process.env.DATABASE_URL) {
 
 // Imported after the env check so connection.js sees DATABASE_URL.
 const { sql } = await import('./connection.js')
-const { PARTS, ACCESSORIES, LEARNING_CARDS, UPGRADE_RULES } = await import('./catalog.js')
+const { PRODUCTS, LEARNING_CARDS, UPGRADE_RULES } = await import('./catalog.js')
 
 /** Split schema.sql into statements, ignoring comment-only lines. */
 function statementsFrom(sqlText) {
   return sqlText
     .split(/;\s*$/m)
-    .map((s) =>
-      s
+    .map((statement) =>
+      statement
         .split('\n')
         .filter((line) => !line.trim().startsWith('--'))
         .join('\n')
@@ -51,43 +51,51 @@ for (const statement of statementsFrom(readFileSync(join(here, 'schema.sql'), 'u
   await sql.query(statement)
 }
 
-console.log('Seeding parts...')
-for (const p of PARTS) {
+console.log('Seeding products...')
+for (const product of PRODUCTS) {
   await sql.query(
-    `INSERT INTO parts (name, category, price, tier, best_for, styles, reason)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-    [p.name, p.category, p.price, p.tier, p.best_for, p.styles, p.reason]
-  )
-}
-
-console.log('Seeding accessories...')
-for (const a of ACCESSORIES) {
-  await sql.query(
-    `INSERT INTO accessories (name, category, price, best_for, styles, reason)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [a.name, a.category, a.price, a.best_for, a.styles, a.reason]
+    `INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      product.name,
+      product.category,
+      product.kind,
+      product.price,
+      product.tier,
+      product.best_for,
+      product.styles,
+      product.reason,
+    ]
   )
 }
 
 console.log('Seeding learning cards...')
-for (const c of LEARNING_CARDS) {
+for (const card of LEARNING_CARDS) {
   await sql.query(
     `INSERT INTO learning_cards (title, short_description, beginner_description, category)
      VALUES ($1, $2, $3, $4)`,
-    [c.title, c.short_description, c.beginner_description, c.category]
+    [card.title, card.short_description, card.beginner_description, card.category]
   )
 }
 
 console.log('Seeding upgrade rules...')
-for (const r of UPGRADE_RULES) {
+for (const rule of UPGRADE_RULES) {
   await sql.query(
     `INSERT INTO upgrade_rules (condition_type, condition_value, upgrade_name, priority, estimated_cost, reason)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [r.condition_type, r.condition_value, r.upgrade_name, r.priority, r.estimated_cost, r.reason]
+    [
+      rule.condition_type,
+      rule.condition_value,
+      rule.upgrade_name,
+      rule.priority,
+      rule.estimated_cost,
+      rule.reason,
+    ]
   )
 }
 
 console.log(
-  `\nDone. Seeded ${PARTS.length} parts, ${ACCESSORIES.length} accessories, ` +
-    `${LEARNING_CARDS.length} learning cards, ${UPGRADE_RULES.length} upgrade rules.\n`
+  `\nDone. Seeded ${PRODUCTS.length} products, ${LEARNING_CARDS.length} learning cards, ` +
+    `${UPGRADE_RULES.length} upgrade rules.\n` +
+    `Register an account in the app to create your first user.\n`
 )
