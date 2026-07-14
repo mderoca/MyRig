@@ -1,54 +1,51 @@
--- MyRig seed data - GENERATED FILE, DO NOT EDIT BY HAND.
+-- MyRig catalog seed - GENERATED FILE, DO NOT EDIT BY HAND.
 -- Source of truth: db/catalog.js   Regenerate with: npm run db:gen-seed
 -- Run db/schema.sql first, then this file.
 
-TRUNCATE parts, accessories, learning_cards, upgrade_rules RESTART IDENTITY;
+TRUNCATE products, learning_cards, upgrade_rules RESTART IDENTITY CASCADE;
 
--- ---------- parts ----------
-INSERT INTO parts (name, category, price, tier, best_for, styles, reason) VALUES
-  ('Ryzen 5 5600', 'cpu', 130, 'budget', ARRAY['casual', 'balanced', 'competitive_fps']::TEXT[], ARRAY['any']::TEXT[], 'A cheap 6-core CPU that still keeps frame rates high in esports and casual games.'),
-  ('Ryzen 5 7600', 'cpu', 200, 'mid', ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Modern 6-core CPU that feeds a mid-range GPU without holding it back.'),
-  ('Intel i5 Class CPU', 'cpu', 210, 'mid', ARRAY['balanced', 'casual', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Well-rounded CPU for gaming plus everyday multitasking.'),
-  ('Intel i7 / Ryzen 7 Class CPU', 'cpu', 340, 'high', ARRAY['streaming', 'high_graphics', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Extra cores handle encoding a stream while the game keeps running smoothly.'),
-  ('RX 7600 Class GPU', 'gpu', 270, 'budget', ARRAY['casual', 'competitive_fps', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Strong value at 1080p, especially in lighter and competitive titles.'),
-  ('RTX 4060 Class GPU', 'gpu', 300, 'mid', ARRAY['competitive_fps', 'balanced', 'streaming']::TEXT[], ARRAY['any']::TEXT[], 'Good for 1080p competitive gaming and high FPS esports titles.'),
-  ('RTX 4070 / RX 7800 XT Class GPU', 'gpu', 520, 'high', ARRAY['high_graphics', 'streaming', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Comfortably drives 1440p with high settings in demanding modern games.'),
-  ('High-End RTX Class GPU', 'gpu', 800, 'ultra', ARRAY['high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Maximum visual quality - ray tracing and 1440p/4K in the heaviest games.'),
-  ('16GB DDR4 RAM', 'ram', 40, 'budget', ARRAY['casual', 'competitive_fps', 'balanced']::TEXT[], ARRAY['any']::TEXT[], '16GB is the comfortable minimum for modern gaming.'),
-  ('16GB DDR5 RAM', 'ram', 60, 'mid', ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Faster memory that pairs with current-generation CPUs.'),
-  ('32GB DDR5 RAM', 'ram', 110, 'high', ARRAY['streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Headroom for a game, a stream, a browser and Discord all at once.'),
-  ('500GB NVMe SSD', 'storage', 45, 'budget', ARRAY['casual', 'competitive_fps']::TEXT[], ARRAY['any']::TEXT[], 'Fast load times on a tight budget - enough for a few large games.'),
-  ('1TB NVMe SSD', 'storage', 70, 'mid', ARRAY['balanced', 'competitive_fps', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'The sweet spot: fast loading with room for a real game library.'),
-  ('2TB NVMe SSD', 'storage', 120, 'high', ARRAY['streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Big modern games and recorded footage fill space quickly.'),
-  ('Budget Airflow Case', 'case', 60, 'budget', ARRAY['casual', 'balanced', 'competitive_fps']::TEXT[], ARRAY['minimalist', 'esports', 'any']::TEXT[], 'Mesh front panel keeps temperatures low without spending much.'),
-  ('Black Minimalist Case', 'case', 85, 'mid', ARRAY['balanced', 'competitive_fps', 'high_graphics']::TEXT[], ARRAY['minimalist', 'esports']::TEXT[], 'Clean matte black shell with no lighting - stays out of the way.'),
-  ('White Clean Case', 'case', 95, 'mid', ARRAY['balanced', 'casual', 'high_graphics']::TEXT[], ARRAY['white', 'cozy']::TEXT[], 'A bright white shell that anchors a light, tidy desk.'),
-  ('RGB Glass Case', 'case', 100, 'mid', ARRAY['balanced', 'high_graphics', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Tempered glass side panel and RGB fans put the build on display.'),
-  ('1080p 75Hz Monitor', 'monitor', 110, 'budget', ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'Cheap and perfectly fine for relaxed, non-competitive games.'),
-  ('1080p 144Hz Monitor', 'monitor', 170, 'mid', ARRAY['competitive_fps', 'balanced', 'casual']::TEXT[], ARRAY['any']::TEXT[], 'High refresh rate makes aiming and tracking noticeably smoother.'),
-  ('1080p 240Hz Monitor', 'monitor', 260, 'high', ARRAY['competitive_fps']::TEXT[], ARRAY['esports', 'rgb', 'minimalist']::TEXT[], 'Built for esports - the lowest possible motion blur and input lag.'),
-  ('1440p 165Hz Monitor', 'monitor', 300, 'high', ARRAY['high_graphics', 'streaming', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Sharper image than 1080p while still staying fast enough for action games.');
-
--- ---------- accessories ----------
-INSERT INTO accessories (name, category, price, best_for, styles, reason) VALUES
-  ('Budget Membrane Keyboard', 'keyboard', 30, ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'Does the job and leaves more of the budget for the parts that affect FPS.'),
-  ('Mechanical Keyboard (TKL)', 'keyboard', 70, ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['minimalist', 'esports']::TEXT[], 'Crisp mechanical switches, and the short layout frees up mouse space.'),
-  ('RGB Mechanical Keyboard', 'keyboard', 90, ARRAY['balanced', 'competitive_fps', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Per-key lighting that matches the rest of the RGB setup.'),
-  ('White Wireless Keyboard', 'keyboard', 85, ARRAY['casual', 'balanced']::TEXT[], ARRAY['white', 'cozy']::TEXT[], 'Wireless and white - keeps the desk clean with no visible cable.'),
-  ('Budget Gaming Mouse', 'mouse', 25, ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'A reliable sensor at a low price for relaxed play.'),
-  ('Lightweight Gaming Mouse', 'mouse', 50, ARRAY['competitive_fps', 'balanced']::TEXT[], ARRAY['esports', 'rgb', 'minimalist']::TEXT[], 'A light body makes fast flick shots easier and reduces wrist fatigue.'),
-  ('Wireless Mouse', 'mouse', 60, ARRAY['balanced', 'casual', 'streaming']::TEXT[], ARRAY['minimalist', 'white', 'cozy']::TEXT[], 'No cable drag, and nothing extra running across a clean desk.'),
-  ('Budget Gaming Headset', 'headset', 40, ARRAY['casual', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Clear game audio and a usable mic for voice chat.'),
-  ('Wireless Gaming Headset', 'headset', 100, ARRAY['competitive_fps', 'streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Good positional audio - hearing footsteps first is a real advantage.'),
-  ('USB Microphone', 'microphone', 70, ARRAY['streaming']::TEXT[], ARRAY['streamer', 'rgb', 'cozy']::TEXT[], 'Audio quality is what viewers notice first - it matters more than video.'),
-  ('1080p Webcam', 'webcam', 60, ARRAY['streaming']::TEXT[], ARRAY['streamer']::TEXT[], 'A face cam helps viewers connect with the stream.'),
-  ('Ring Light', 'lighting', 45, ARRAY['streaming']::TEXT[], ARRAY['streamer', 'white']::TEXT[], 'Even front lighting makes any webcam look dramatically better.'),
-  ('LED Light Strip', 'lighting', 25, ARRAY['balanced', 'casual', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Backlighting behind the desk adds the RGB glow with almost no cost.'),
-  ('Warm Desk Lamp', 'lighting', 35, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy', 'white']::TEXT[], 'Warm light is easier on the eyes during long evening sessions.'),
-  ('Desk Speakers', 'desk', 80, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy', 'white']::TEXT[], 'For the times you want the room filled with sound instead of a headset.'),
-  ('Plant & Decor Set', 'desk', 30, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy']::TEXT[], 'A plant and a few small pieces turn a computer desk into a space you enjoy.'),
-  ('Large Desk Mat', 'desk', 25, ARRAY['competitive_fps', 'balanced', 'casual', 'high_graphics', 'streaming']::TEXT[], ARRAY['any']::TEXT[], 'A consistent surface for low-sensitivity aiming, and it tidies the desk.'),
-  ('Cable Management Kit', 'desk', 20, ARRAY['balanced', 'competitive_fps', 'casual', 'high_graphics', 'streaming']::TEXT[], ARRAY['minimalist', 'white', 'esports', 'any']::TEXT[], 'The cheapest upgrade that makes a setup look finished.');
+-- ---------- products ----------
+INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason) VALUES
+  ('Ryzen 5 5600', 'cpu', 'part', 130, 'budget', ARRAY['casual', 'balanced', 'competitive_fps']::TEXT[], ARRAY['any']::TEXT[], 'A cheap 6-core CPU that still keeps frame rates high in esports and casual games.'),
+  ('Ryzen 5 7600', 'cpu', 'part', 200, 'mid', ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Modern 6-core CPU that feeds a mid-range GPU without holding it back.'),
+  ('Intel i5 Class CPU', 'cpu', 'part', 210, 'mid', ARRAY['balanced', 'casual', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Well-rounded CPU for gaming plus everyday multitasking.'),
+  ('Intel i7 / Ryzen 7 Class CPU', 'cpu', 'part', 340, 'high', ARRAY['streaming', 'high_graphics', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Extra cores handle encoding a stream while the game keeps running smoothly.'),
+  ('RX 7600 Class GPU', 'gpu', 'part', 270, 'budget', ARRAY['casual', 'competitive_fps', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Strong value at 1080p, especially in lighter and competitive titles.'),
+  ('RTX 4060 Class GPU', 'gpu', 'part', 300, 'mid', ARRAY['competitive_fps', 'balanced', 'streaming']::TEXT[], ARRAY['any']::TEXT[], 'Good for 1080p competitive gaming and high FPS esports titles.'),
+  ('RTX 4070 / RX 7800 XT Class GPU', 'gpu', 'part', 520, 'high', ARRAY['high_graphics', 'streaming', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Comfortably drives 1440p with high settings in demanding modern games.'),
+  ('High-End RTX Class GPU', 'gpu', 'part', 800, 'ultra', ARRAY['high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Maximum visual quality - ray tracing and 1440p/4K in the heaviest games.'),
+  ('16GB DDR4 RAM', 'ram', 'part', 40, 'budget', ARRAY['casual', 'competitive_fps', 'balanced']::TEXT[], ARRAY['any']::TEXT[], '16GB is the comfortable minimum for modern gaming.'),
+  ('16GB DDR5 RAM', 'ram', 'part', 60, 'mid', ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Faster memory that pairs with current-generation CPUs.'),
+  ('32GB DDR5 RAM', 'ram', 'part', 110, 'high', ARRAY['streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Headroom for a game, a stream, a browser and Discord all at once.'),
+  ('500GB NVMe SSD', 'storage', 'part', 45, 'budget', ARRAY['casual', 'competitive_fps']::TEXT[], ARRAY['any']::TEXT[], 'Fast load times on a tight budget - enough for a few large games.'),
+  ('1TB NVMe SSD', 'storage', 'part', 70, 'mid', ARRAY['balanced', 'competitive_fps', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'The sweet spot: fast loading with room for a real game library.'),
+  ('2TB NVMe SSD', 'storage', 'part', 120, 'high', ARRAY['streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Big modern games and recorded footage fill space quickly.'),
+  ('Budget Airflow Case', 'case', 'part', 60, 'budget', ARRAY['casual', 'balanced', 'competitive_fps']::TEXT[], ARRAY['minimalist', 'esports', 'any']::TEXT[], 'Mesh front panel keeps temperatures low without spending much.'),
+  ('Black Minimalist Case', 'case', 'part', 85, 'mid', ARRAY['balanced', 'competitive_fps', 'high_graphics']::TEXT[], ARRAY['minimalist', 'esports']::TEXT[], 'Clean matte black shell with no lighting - stays out of the way.'),
+  ('White Clean Case', 'case', 'part', 95, 'mid', ARRAY['balanced', 'casual', 'high_graphics']::TEXT[], ARRAY['white', 'cozy']::TEXT[], 'A bright white shell that anchors a light, tidy desk.'),
+  ('RGB Glass Case', 'case', 'part', 100, 'mid', ARRAY['balanced', 'high_graphics', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Tempered glass side panel and RGB fans put the build on display.'),
+  ('1080p 75Hz Monitor', 'monitor', 'part', 110, 'budget', ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'Cheap and perfectly fine for relaxed, non-competitive games.'),
+  ('1080p 144Hz Monitor', 'monitor', 'part', 170, 'mid', ARRAY['competitive_fps', 'balanced', 'casual']::TEXT[], ARRAY['any']::TEXT[], 'High refresh rate makes aiming and tracking noticeably smoother.'),
+  ('1080p 240Hz Monitor', 'monitor', 'part', 260, 'high', ARRAY['competitive_fps']::TEXT[], ARRAY['esports', 'rgb', 'minimalist']::TEXT[], 'Built for esports - the lowest possible motion blur and input lag.'),
+  ('1440p 165Hz Monitor', 'monitor', 'part', 300, 'high', ARRAY['high_graphics', 'streaming', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Sharper image than 1080p while still staying fast enough for action games.'),
+  ('Budget Membrane Keyboard', 'keyboard', 'accessory', 30, NULL, ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'Does the job and leaves more of the budget for the parts that affect FPS.'),
+  ('Mechanical Keyboard (TKL)', 'keyboard', 'accessory', 70, NULL, ARRAY['competitive_fps', 'balanced', 'high_graphics']::TEXT[], ARRAY['minimalist', 'esports']::TEXT[], 'Crisp mechanical switches, and the short layout frees up mouse space.'),
+  ('RGB Mechanical Keyboard', 'keyboard', 'accessory', 90, NULL, ARRAY['balanced', 'competitive_fps', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Per-key lighting that matches the rest of the RGB setup.'),
+  ('White Wireless Keyboard', 'keyboard', 'accessory', 85, NULL, ARRAY['casual', 'balanced']::TEXT[], ARRAY['white', 'cozy']::TEXT[], 'Wireless and white - keeps the desk clean with no visible cable.'),
+  ('Budget Gaming Mouse', 'mouse', 'accessory', 25, NULL, ARRAY['casual']::TEXT[], ARRAY['any']::TEXT[], 'A reliable sensor at a low price for relaxed play.'),
+  ('Lightweight Gaming Mouse', 'mouse', 'accessory', 50, NULL, ARRAY['competitive_fps', 'balanced']::TEXT[], ARRAY['esports', 'rgb', 'minimalist']::TEXT[], 'A light body makes fast flick shots easier and reduces wrist fatigue.'),
+  ('Wireless Mouse', 'mouse', 'accessory', 60, NULL, ARRAY['balanced', 'casual', 'streaming']::TEXT[], ARRAY['minimalist', 'white', 'cozy']::TEXT[], 'No cable drag, and nothing extra running across a clean desk.'),
+  ('Budget Gaming Headset', 'headset', 'accessory', 40, NULL, ARRAY['casual', 'balanced']::TEXT[], ARRAY['any']::TEXT[], 'Clear game audio and a usable mic for voice chat.'),
+  ('Wireless Gaming Headset', 'headset', 'accessory', 100, NULL, ARRAY['competitive_fps', 'streaming', 'high_graphics']::TEXT[], ARRAY['any']::TEXT[], 'Good positional audio - hearing footsteps first is a real advantage.'),
+  ('USB Microphone', 'microphone', 'accessory', 70, NULL, ARRAY['streaming']::TEXT[], ARRAY['streamer', 'rgb', 'cozy']::TEXT[], 'Audio quality is what viewers notice first - it matters more than video.'),
+  ('1080p Webcam', 'webcam', 'accessory', 60, NULL, ARRAY['streaming']::TEXT[], ARRAY['streamer']::TEXT[], 'A face cam helps viewers connect with the stream.'),
+  ('Ring Light', 'lighting', 'accessory', 45, NULL, ARRAY['streaming']::TEXT[], ARRAY['streamer', 'white']::TEXT[], 'Even front lighting makes any webcam look dramatically better.'),
+  ('LED Light Strip', 'lighting', 'accessory', 25, NULL, ARRAY['balanced', 'casual', 'streaming']::TEXT[], ARRAY['rgb', 'streamer']::TEXT[], 'Backlighting behind the desk adds the RGB glow with almost no cost.'),
+  ('Warm Desk Lamp', 'lighting', 'accessory', 35, NULL, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy', 'white']::TEXT[], 'Warm light is easier on the eyes during long evening sessions.'),
+  ('Desk Speakers', 'desk', 'accessory', 80, NULL, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy', 'white']::TEXT[], 'For the times you want the room filled with sound instead of a headset.'),
+  ('Plant & Decor Set', 'desk', 'accessory', 30, NULL, ARRAY['casual', 'balanced']::TEXT[], ARRAY['cozy']::TEXT[], 'A plant and a few small pieces turn a computer desk into a space you enjoy.'),
+  ('Large Desk Mat', 'desk', 'accessory', 25, NULL, ARRAY['competitive_fps', 'balanced', 'casual', 'high_graphics', 'streaming']::TEXT[], ARRAY['any']::TEXT[], 'A consistent surface for low-sensitivity aiming, and it tidies the desk.'),
+  ('Cable Management Kit', 'desk', 'accessory', 20, NULL, ARRAY['balanced', 'competitive_fps', 'casual', 'high_graphics', 'streaming']::TEXT[], ARRAY['minimalist', 'white', 'esports', 'any']::TEXT[], 'The cheapest upgrade that makes a setup look finished.');
 
 -- ---------- learning_cards ----------
 INSERT INTO learning_cards (title, short_description, beginner_description, category) VALUES

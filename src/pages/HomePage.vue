@@ -1,17 +1,50 @@
 <script setup>
 /**
- * The landing page. Its job is to answer, in one screen, the question the
- * course project has to answer too: why is this not just PCPartPicker?
+ * The landing page, following the Figma homepage: a hero with copy left and art
+ * right, a "Don't know where to start?" band, popular pre-builts, and the
+ * differentiator section.
  */
+
+import { ref, onMounted } from 'vue'
+import { getProducts } from '../services/api.js'
+import ProductCard from '../components/ProductCard.vue'
+import LoadingState from '../components/LoadingState.vue'
+
+const featured = ref([])
+const loading = ref(true)
+
+const PATHS = [
+  {
+    to: '/quiz',
+    eyebrow: 'Not sure what you need',
+    title: 'Take the setup quiz',
+    body: 'Answer four questions about your games, budget and style. Get a whole setup, scored, with an upgrade path.',
+    cta: 'Start the quiz',
+  },
+  {
+    to: '/can-i-run-it',
+    eyebrow: 'Got one game in mind',
+    title: 'Can I run it?',
+    body: 'Search a real game. MyRig reads what it needs and tells you what the rig costs.',
+    cta: 'Check a game',
+  },
+  {
+    to: '/custom',
+    eyebrow: 'Know what you want',
+    title: 'Build it yourself',
+    body: 'Pick every part yourself and watch the total as you go.',
+    cta: 'Open the builder',
+  },
+]
 
 const DIFFERENTIATORS = [
   {
     title: 'Game-first recommendations',
-    body: 'Start from the games you actually play. MyRig reads their genres and tags from RAWG and builds around them - a Valorant player and an Elden Ring player get different setups at the same budget.',
+    body: 'The build starts from the games you actually play. MyRig reads their genres and tags from RAWG - a Valorant player and an Elden Ring player get different rigs at the same budget.',
   },
   {
     title: 'Full setup budget',
-    body: 'Your budget covers the whole desk, not just the tower. Monitor, keyboard, mouse, headset and accessories are all planned inside the number you picked.',
+    body: 'Your budget covers the whole desk, not just the tower. Monitor, keyboard, mouse, headset and accessories are planned inside the number you picked.',
   },
   {
     title: 'Setup style picker',
@@ -19,7 +52,7 @@ const DIFFERENTIATORS = [
   },
   {
     title: 'Beginner learning area',
-    body: 'Never built a PC? Turn on beginner mode and every recommendation comes with a plain-language explanation of what the part actually does.',
+    body: 'Never built a PC? Turn on beginner mode and every recommendation comes with a plain-language explanation of what the part does.',
   },
   {
     title: 'Setup scores',
@@ -31,11 +64,18 @@ const DIFFERENTIATORS = [
   },
 ]
 
-const STEPS = [
-  { n: '01', title: 'Pick your games', body: 'Search real games through the RAWG database.' },
-  { n: '02', title: 'Answer three questions', body: 'Budget, gaming goal, setup style.' },
-  { n: '03', title: 'Get your full setup', body: 'Parts, budget, scores and an upgrade path.' },
-]
+onMounted(async () => {
+  try {
+    // A few high-tier parts as the "popular" rail. Not a real popularity metric -
+    // there is no order-count query behind this, and pretending otherwise would be a lie.
+    const data = await getProducts({ kind: 'part', sort: 'tier' })
+    featured.value = data.products.slice(0, 4)
+  } catch {
+    featured.value = [] // the store being down should not take the homepage with it
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <template>
@@ -43,28 +83,23 @@ const STEPS = [
     <!-- Hero -->
     <section class="hero container">
       <div class="hero-copy">
-        <span class="eyebrow">Gaming setup planner</span>
-        <h1 class="hero-title">MyRig</h1>
-        <p class="tagline">Build your gaming setup around your games, budget, and style.</p>
+        <span class="eyebrow">Gaming setup planner &amp; store</span>
+        <h1 class="hero-title">Design the rig<br />that fits you.</h1>
 
         <p class="lede">
           Most build tools start with parts. MyRig starts with you - the games in your
-          library, the money you actually have, and the desk you want to sit at. Answer a
-          short quiz and get a complete setup: the PC, the screen, the peripherals, the
-          accessories, what it all costs, how good it is, and what to upgrade first.
+          library, the money you actually have, and the desk you want to sit at. Get a
+          complete setup, then buy it in one place.
         </p>
 
         <div class="hero-actions">
           <RouterLink to="/quiz" class="btn btn-lg">Start Setup Quiz</RouterLink>
-          <RouterLink to="/learn" class="btn btn-ghost btn-lg">
-            New to this? Start here
-          </RouterLink>
+          <RouterLink to="/shop" class="btn btn-ghost btn-lg">Browse the shop</RouterLink>
         </div>
 
-        <p class="muted hero-note">No account needed. Takes about a minute.</p>
+        <p class="muted hero-note">No account needed to plan. Takes about a minute.</p>
       </div>
 
-      <!-- A stylised "setup" rather than a stock photo. Pure CSS, so it costs nothing. -->
       <div class="hero-art" aria-hidden="true">
         <div class="art-monitor">
           <div class="art-screen">
@@ -84,18 +119,41 @@ const STEPS = [
       </div>
     </section>
 
-    <!-- What it is -->
+    <!-- Three ways in - the Figma's "Don't Know Where To Start?" band -->
     <section class="section container">
-      <div class="steps">
-        <div v-for="step in STEPS" :key="step.n" class="step">
-          <span class="step-n">{{ step.n }}</span>
-          <h3>{{ step.title }}</h3>
-          <p class="muted">{{ step.body }}</p>
-        </div>
+      <div class="section-head">
+        <span class="eyebrow">Don't know where to start?</span>
+        <h2>Three ways in</h2>
+      </div>
+
+      <div class="grid grid-3">
+        <RouterLink v-for="path in PATHS" :key="path.to" :to="path.to" class="path card">
+          <span class="eyebrow">{{ path.eyebrow }}</span>
+          <h3>{{ path.title }}</h3>
+          <p class="muted">{{ path.body }}</p>
+          <span class="path-cta">{{ path.cta }} →</span>
+        </RouterLink>
       </div>
     </section>
 
-    <!-- The differentiator section -->
+    <!-- Featured parts -->
+    <section class="section container">
+      <div class="row-between section-head">
+        <div>
+          <span class="eyebrow">From the shop</span>
+          <h2>Popular parts</h2>
+        </div>
+        <RouterLink to="/shop" class="btn btn-ghost">See everything</RouterLink>
+      </div>
+
+      <LoadingState v-if="loading" message="Loading parts..." />
+
+      <div v-else-if="featured.length" class="grid featured-grid">
+        <ProductCard v-for="product in featured" :key="product.id" :product="product" />
+      </div>
+    </section>
+
+    <!-- The differentiator -->
     <section class="section container">
       <div class="section-head">
         <span class="eyebrow">What makes it different</span>
@@ -139,24 +197,17 @@ const STEPS = [
 }
 
 .hero-title {
-  font-size: clamp(3rem, 7vw, 4.5rem);
-  background: linear-gradient(120deg, var(--text) 30%, var(--secondary));
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  background: linear-gradient(120deg, var(--text) 35%, var(--secondary));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.tagline {
-  font-family: var(--font-display);
-  font-size: clamp(1.125rem, 2.2vw, 1.5rem);
-  color: var(--text);
-  margin-top: var(--space-3);
-}
-
 .lede {
   color: var(--muted);
   margin-top: var(--space-4);
-  max-width: 56ch;
+  max-width: 54ch;
 }
 
 .hero-actions {
@@ -284,32 +335,39 @@ const STEPS = [
   border: 1px solid var(--border-strong);
 }
 
-/* ---------- Steps ---------- */
-.steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-5);
-  padding: var(--space-5);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+/* ---------- Paths ---------- */
+.path {
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  transition: border-color 0.15s ease, transform 0.12s ease;
 }
 
-.step-n {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--secondary);
+.path:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.4);
+  text-decoration: none;
+}
+
+.path h3 {
   margin-bottom: var(--space-2);
 }
 
-.step h3 {
-  margin-bottom: 4px;
+.path p {
+  flex: 1;
+  font-size: 0.9375rem;
 }
 
-.step p {
-  font-size: 0.9375rem;
+.path-cta {
+  margin-top: var(--space-4);
+  color: var(--secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* ---------- Featured ---------- */
+.featured-grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
 }
 
 /* ---------- Features ---------- */

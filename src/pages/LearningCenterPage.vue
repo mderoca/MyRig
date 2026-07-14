@@ -1,13 +1,13 @@
 <script setup>
 /**
- * The Learning Center. Reads the learning_cards table via /api/parts.
+ * The Learning Center. Reads the learning_cards table via /api/learning.
  *
  * The same rows power beginner mode on the recommendation page - one place to
  * edit an explanation, two places it shows up.
  */
 
 import { ref, onMounted } from 'vue'
-import { getCatalog } from '../services/api.js'
+import { getLearningCards } from '../services/api.js'
 import LearningCard from '../components/LearningCard.vue'
 import LoadingState from '../components/LoadingState.vue'
 import ErrorMessage from '../components/ErrorMessage.vue'
@@ -21,8 +21,7 @@ async function load() {
   error.value = ''
 
   try {
-    const catalog = await getCatalog()
-    cards.value = catalog.learningCards || []
+    cards.value = await getLearningCards()
   } catch (err) {
     error.value = err.message
   } finally {

@@ -1,14 +1,18 @@
 /**
  * The seed catalog for MyRig.
  *
- * This file is the single source of truth for everything that lives in the
- * `parts`, `accessories`, `learning_cards` and `upgrade_rules` tables.
+ * Single source of truth for the `products`, `learning_cards` and
+ * `upgrade_rules` tables.
  *
  *   npm run db:gen-seed   ->  regenerates db/seed.sql from this file
  *   npm run db:setup      ->  applies db/schema.sql then seeds Neon from this file
  *
- * Prices are realistic sample prices in USD. They are not live prices - MyRig
- * is a planner, not a store.
+ * PARTS and ACCESSORIES are kept as separate arrays here because that is how the
+ * recommendation engine thinks about them, but they seed ONE `products` table
+ * (see PRODUCTS at the bottom). The store sells the same rows the engine
+ * recommends - a part is a product. There is no second catalog to keep in sync.
+ *
+ * Prices are realistic sample prices in USD, not live retail prices.
  *
  * Field meanings:
  *   tier      'budget' | 'mid' | 'high' | 'ultra'  (see TIER_ORDER in api/_lib/engine.js)
@@ -384,6 +388,16 @@ export const ACCESSORIES = [
     styles: ['minimalist', 'white', 'esports', 'any'],
     reason: 'The cheapest upgrade that makes a setup look finished.',
   },
+]
+
+/**
+ * What actually goes into the `products` table: parts and accessories, tagged
+ * with which they are. Order is stable, so product ids are stable across
+ * re-seeds - which matters, because orders and wishlists point at them.
+ */
+export const PRODUCTS = [
+  ...PARTS.map((p) => ({ ...p, kind: 'part' })),
+  ...ACCESSORIES.map((a) => ({ ...a, kind: 'accessory', tier: null })),
 ]
 
 export const LEARNING_CARDS = [

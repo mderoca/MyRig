@@ -3,13 +3,17 @@
  *
  * Every call goes to our own /api/* serverless routes. The browser never calls
  * RAWG or Neon directly - it has no key for either, by design.
+ *
+ * `credentials: 'same-origin'` is what carries the session cookie. The cookie is
+ * httpOnly, so this file cannot read it, and neither can any script injected
+ * into the page - which is the point.
  */
 
-/** Calls an API route and turns a non-2xx response into a thrown Error with the server's message. */
 async function request(path, options = {}) {
   let response
   try {
     response = await fetch(path, {
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       ...options,
     })
@@ -25,52 +29,58 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(payload?.error || `Request failed (${response.status}).`)
+    const error = new Error(payload?.error || `Request failed (${response.status}).`)
+    error.status = response.status
+    throw error
   }
 
   return payload
 }
 
-/** GET /api/games/search?q=... */
-export function searchGames(query) {
-  return request(`/api/games/search?q=${encodeURIComponent(query)}`).then((r) => r.games || [])
+const post = (path, body) => request(path, { method: 'POST', body: JSON.stringify(body) })
+
+// ---------------------------------------------------------------- auth
+export const register = (credentials) => post('/api/auth/register', credentials).then((r) => r.user)
+export const login = (credentials) => post('/api/auth/login', credentials).then((r) => r.user)
+export const logout = () => post('/api/auth/logout', {})
+export const me = () => request('/api/auth/me').then((r) => r.user)
+
+// ---------------------------------------------------------------- store
+/** @param filters { category, kind, q, min, max, sort } - all optional */
+export function getProducts(filters = {}) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== '' && value !== null && value !== undefined) params.set(key, value)
+  }
+  const query = params.toString()
+  return request(`/api/products${query ? `?${query}` : ''}`)
 }
 
-/** GET /api/games/:id */
-export function getGame(id) {
-  return request(`/api/games/${encodeURIComponent(id)}`).then((r) => r.game)
-}
+// ---------------------------------------------------------------- games
+export const searchGames = (query) =>
+  request(`/api/games/search?q=${encodeURIComponent(query)}`).then((r) => r.games || [])
 
-/** GET /api/parts - parts, accessories, learning cards, upgrade rules. */
-export function getCatalog() {
-  return request('/api/parts')
-}
+export const getGame = (id) => request(`/api/games/${encodeURIComponent(id)}`).then((r) => r.game)
 
-/** POST /api/recommend - runs the quiz answers through the recommendation engine. */
-export function generateSetup(quiz) {
-  return request('/api/recommend', {
-    method: 'POST',
-    body: JSON.stringify(quiz),
-  })
-}
+/** "Can I Run It?" - what this game needs, and what it costs. */
+export const canIRun = (gameId) => post('/api/can-i-run', { gameId })
 
-/** GET /api/builds?userId=... */
-export function listBuilds(userId) {
-  return request(`/api/builds?userId=${encodeURIComponent(userId)}`).then((r) => r.builds || [])
-}
+// ---------------------------------------------------------------- planner
+export const generateSetup = (quiz) => post('/api/recommend', quiz)
 
-/** POST /api/builds */
-export function saveBuild(build) {
-  return request('/api/builds', {
-    method: 'POST',
-    body: JSON.stringify(build),
-  }).then((r) => r.build)
-}
+export const getLearningCards = () => request('/api/learning').then((r) => r.learningCards || [])
 
-/** DELETE /api/builds?id=...&userId=... */
-export function deleteBuild(id, userId) {
-  return request(
-    `/api/builds?id=${encodeURIComponent(id)}&userId=${encodeURIComponent(userId)}`,
-    { method: 'DELETE' }
-  )
-}
+// ---------------------------------------------------------------- account data
+export const listBuilds = () => request('/api/builds').then((r) => r.builds || [])
+export const saveBuild = (build) => post('/api/builds', build).then((r) => r.build)
+export const deleteBuild = (id) =>
+  request(`/api/builds?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+
+export const listWishlist = () => request('/api/wishlist').then((r) => r.items || [])
+export const addToWishlist = (productId) => post('/api/wishlist', { productId })
+export const removeFromWishlist = (productId) =>
+  request(`/api/wishlist?productId=${encodeURIComponent(productId)}`, { method: 'DELETE' })
+
+export const listOrders = () => request('/api/orders').then((r) => r.orders || [])
+/** @param items [{ productId, quantity }] - prices are decided by the server, not us. */
+export const placeOrder = (items) => post('/api/orders', { items }).then((r) => r.order)

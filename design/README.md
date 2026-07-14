@@ -1,34 +1,54 @@
 # Design source of truth
 
-## Current state: the Figma file could not be read
+## What was taken from the Figma, and what was not
 
-The design was specified as:
+The Figma:
+<https://www.figma.com/design/BNqGvY4f6i1ZZXHYFdjQRv/Website-2?node-id=0-1>
 
-<https://www.figma.com/design/BNqGvY4f6i1ZZXHYFdjQRv/Website-2?node-id=0-1&p=f>
+It was reviewed from a screenshot on 2026-07-14. (The file is publicly viewable, but Figma
+renders designs on a `<canvas>` via JavaScript, so fetching the page yields no layout or
+colour data, and the REST API needs a token. A screenshot was the practical route.)
 
-That URL requires a Figma login, so the layout, spacing, fonts and colours could not be
-read from it (attempted 2026-07-14). **No design decisions were guessed from it.**
+### Taken from it — the structure and the brand
 
-Instead the UI was built to the **written** design spec that accompanied the brief — the
-"Cyber Setup / Dark Gaming Lifestyle" theme, including the exact palette, the button and
-card rules, and the per-style colour vibes. That palette is implemented in
-`src/styles/theme.css`.
+- **The page set.** The Figma is a *store*: Homepage, Can I Run It?, Login, Register, Store,
+  Builder, Saved Builds, Wishlist, Orders, Account. That is what the app now is, and it is
+  why real authentication exists.
+- **The brand.** MYRIG wordmark, the "MR" monogram (`src/components/Logo.vue`), and the
+  tagline **"Design the rig that fits you"**.
+- **The floating pill navbar** — logo left, links centre, account and cart right.
+- **The split-screen auth layout** — dark hero panel left carrying the wordmark and tagline,
+  form right (`src/components/AuthLayout.vue`).
+- **The three-column footer** — Get Started / Explore / Resources, with a social row.
+- **The Saved Builds and Orders card layouts** — name and status left, component chips, item
+  count and total right-aligned.
+- **Image placeholders.** The Figma uses grey placeholder blocks rather than product
+  photography, so `ProductCard.vue` renders a styled placeholder tile. Inventing stock
+  product photos would have been worse than none.
 
-## To apply the real Figma design
+### NOT taken from it — the colours
 
-Drop exported frames into this folder and say so — the UI will be restyled to match.
+**The Figma frames are greyscale wireframes.** They do not define a palette. Only the
+Login/Register frame is coloured, and it shows a near-black background with cyan/blue neon
+and white type.
 
-**What is most useful, in order:**
+The written brief says: *"If the Figma colors are available, use them first. If the Figma
+file does not clearly define all colors, use this theme"* — followed by the full "Cyber
+Setup / Dark Gaming Lifestyle" palette. Since the Figma does **not** clearly define colours,
+that written palette is what is implemented, and it is consistent with the one coloured
+frame.
 
-1. **PNG exports of each frame** (Home, Quiz, Recommendation, Learning Center, Saved
-   Builds), at 2x. Name them `home.png`, `quiz.png`, etc.
-2. **The colour styles** — a screenshot of the Figma colour palette panel, or just the
-   hex codes.
+**If the intended design is actually light** (white pages, black navbar — which is one way to
+read the wireframes), say so and it will be re-themed. That is a change to
+`src/styles/theme.css` and little else.
+
+## To refine the design further
+
+Drop exported frames into this folder and say so.
+
+1. **PNG exports of each frame**, at 2x. Name them `home.png`, `store.png`, etc.
+2. **The colour styles** — a screenshot of the Figma colour palette panel, or the hex codes.
 3. **The text styles** — font family, sizes and weights for headings and body.
-4. **A navbar and footer frame**, and one card + one button component, close up.
-
-Screenshots of the Figma canvas are fine. Anything readable works — the point is to see
-the real spacing, type scale and colour, rather than infer them.
 
 ## Where the design lives in the code
 
