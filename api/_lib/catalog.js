@@ -30,7 +30,8 @@ export async function loadCatalog() {
   assertDatabase()
 
   const [products, learningCards, upgradeRules] = await Promise.all([
-    sql`SELECT id, name, category, kind, price, tier, best_for, styles, reason, in_stock
+    sql`SELECT id, name, category, kind, price, tier, best_for, styles, reason, in_stock,
+               socket, ram_type, tdp, wattage
         FROM products
         WHERE in_stock = TRUE
         ORDER BY category, price`,

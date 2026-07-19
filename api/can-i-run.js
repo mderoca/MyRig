@@ -4,18 +4,18 @@
  * "Can I Run It?" - pick a game, get the build that runs it and what it costs.
  *
  * Public: no sign-in needed. This is the page that shows off the whole idea -
- * a real game from RAWG drives a real build from our own catalog.
+ * a real game from IGDB drives a real build from our own catalog.
  *
- * How it decides: it reads the game's genres and tags from RAWG and lets the
+ * How it decides: it reads the game's genres and tags from IGDB and lets the
  * SAME recommendation engine the quiz uses infer what the game needs. A shooter
  * tagged "competitive" gets frames; an open-world RPG gets fidelity.
  *
  * Response: { game, verdict, builds: { minimum, recommended } }
  */
 
-import { getGame, RawgError } from './_lib/rawg.js'
+import { getGame, IgdbError } from './_lib/igdb.js'
 import { loadCatalog, DatabaseNotConfigured } from './_lib/catalog.js'
-import { recommendSetup, readGameSignal } from './_lib/engine.js'
+import { recommendSetup, readGameSignal, checkCompatibility } from './_lib/engine.js'
 import { assertSameOrigin, AuthError } from './_lib/auth.js'
 
 /**
@@ -31,8 +31,14 @@ function goalForGame(game) {
   return 'balanced'
 }
 
-/** Just the tower and the screen - "can I run it" is not a question about desk mats. */
-const RIG_ONLY = (item) => ['cpu', 'gpu', 'ram', 'storage', 'case', 'monitor'].includes(item.category)
+/**
+ * Just the tower and the screen - "can I run it" is not a question about desk mats.
+ *
+ * Motherboard and PSU belong here: they are part of the machine, and leaving them
+ * out quoted a build price for a PC that could not be assembled or powered.
+ */
+const RIG_ONLY = (item) =>
+  ['cpu', 'motherboard', 'gpu', 'ram', 'psu', 'storage', 'case', 'monitor'].includes(item.category)
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -65,6 +71,9 @@ export default async function handler(req, res) {
         items,
         total: items.reduce((sum, item) => sum + item.price, 0),
         performance: setup.scores.find((s) => s.key === 'performance'),
+        // Re-derived for the rig-only subset, so the quoted machine is one that
+        // actually assembles - not just a slice of a build that did.
+        compatibility: checkCompatibility(items),
       }
     }
 
@@ -98,7 +107,7 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     const status =
-      err instanceof RawgError || err instanceof DatabaseNotConfigured || err instanceof AuthError
+      err instanceof IgdbError || err instanceof DatabaseNotConfigured || err instanceof AuthError
         ? err.status
         : 500
     console.error('[api/can-i-run]', status, err.message)

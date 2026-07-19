@@ -27,7 +27,7 @@ const SUGGESTIONS = [
 let timer = null
 
 /** Waits until typing stops before hitting the API - one request per search,
- *  not one per keystroke. RAWG rate-limits free keys. */
+ *  not one per keystroke. IGDB rate-limits free keys. */
 watch(query, (value) => {
   clearTimeout(timer)
   error.value = ''
@@ -88,7 +88,7 @@ function searchFor(term) {
       </button>
     </div>
 
-    <LoadingState v-if="loading" message="Searching RAWG..." />
+    <LoadingState v-if="loading" message="Searching IGDB..." />
 
     <ErrorMessage
       v-else-if="error"

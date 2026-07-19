@@ -10,8 +10,10 @@
 import { computed, ref, onMounted } from 'vue'
 import { getProducts } from '../services/api.js'
 import { useCartStore } from '../stores/cartStore.js'
+import { isCompatible, checkCompatibility } from '../../shared/compatibility.js'
 import LoadingState from '../components/LoadingState.vue'
 import ErrorMessage from '../components/ErrorMessage.vue'
+import CompatibilityPanel from '../components/CompatibilityPanel.vue'
 
 const cart = useCartStore()
 
@@ -19,11 +21,19 @@ const products = ref([])
 const loading = ref(true)
 const error = ref('')
 
-/** The nine slots of a complete setup, in the order you would actually buy them. */
+/**
+ * The eleven slots of a complete setup, in the order you would actually buy them.
+ *
+ * Motherboard sits straight after the processor because it is the part the CPU
+ * has to match, and the power supply last of the tower parts because its size
+ * depends on everything above it.
+ */
 const SLOTS = [
   { category: 'cpu', label: 'Processor', hint: 'The brain of the machine' },
-  { category: 'gpu', label: 'Graphics Card', hint: 'What decides how games look and run' },
+  { category: 'motherboard', label: 'Motherboard', hint: 'Must match your CPU socket' },
   { category: 'ram', label: 'Memory', hint: '16GB is the comfortable minimum' },
+  { category: 'gpu', label: 'Graphics Card', hint: 'What decides how games look and run' },
+  { category: 'psu', label: 'Power Supply', hint: 'Must cover what the build draws' },
   { category: 'storage', label: 'Storage', hint: 'Where your games live' },
   { category: 'case', label: 'Case', hint: 'Airflow, and the look of the build' },
   { category: 'monitor', label: 'Monitor', hint: 'The part you actually stare at' },
@@ -36,6 +46,42 @@ const SLOTS = [
 const chosen = ref({})
 
 const optionsFor = (category) => products.value.filter((p) => p.category === category)
+
+/**
+ * Why an option cannot be chosen right now, or null if it can.
+ *
+ * Uses the SAME isCompatible() the recommendation engine uses - see
+ * shared/compatibility.js. The quiz and the builder must not disagree about what
+ * fits what.
+ *
+ * The part currently sitting in this slot is excluded from the comparison, since
+ * a part never conflicts with itself, and re-clicking it is how you clear a slot.
+ */
+function blockedReason(option) {
+  const others = selected.value.filter((p) => p.category !== option.category)
+  if (isCompatible(option, others)) return null
+
+  const board = others.find((p) => p.category === 'motherboard')
+  const cpu = others.find((p) => p.category === 'cpu')
+
+  switch (option.category) {
+    case 'cpu':
+      return `${option.socket} - your ${board?.name} needs ${board?.socket}`
+    case 'motherboard':
+      return cpu && cpu.socket !== option.socket
+        ? `${option.socket} - your ${cpu.name} needs ${cpu.socket}`
+        : `${option.ram_type} - does not match your memory`
+    case 'ram':
+      return `${option.ram_type} - your ${board?.name} takes ${board?.ram_type}`
+    case 'psu':
+      return `${option.wattage}W - too small for this build`
+    default:
+      return 'Not compatible with the parts you have chosen'
+  }
+}
+
+/** The live verdict, recomputed from whatever is in the slots right now. */
+const compatibility = computed(() => checkCompatibility(selected.value))
 
 const selected = computed(() =>
   Object.values(chosen.value)
@@ -113,19 +159,36 @@ onMounted(load)
               <h2 class="slot-title">{{ slot.label }}</h2>
               <p class="muted slot-hint">{{ slot.hint }}</p>
             </div>
+
+      <!-- Live compatibility verdict. Same component and same rules as the quiz
+           result page, so the two can never tell the user different things. -->
+      <section v-if="compatibility.checks.length" class="compat-slot">
+        <CompatibilityPanel :compatibility="compatibility" />
+      </section>
             <span v-if="chosen[slot.category]" class="check" aria-hidden="true">✓</span>
           </header>
 
           <ul class="options">
             <li v-for="option in optionsFor(slot.category)" :key="option.id">
+              <!-- Incompatible options stay VISIBLE but disabled, with the reason
+                   shown. Hiding them would leave a beginner wondering where the
+                   part went; this way the constraint teaches itself. -->
               <button
                 type="button"
                 class="option"
-                :class="{ active: chosen[slot.category] === option.id }"
+                :class="{
+                  active: chosen[slot.category] === option.id,
+                  blocked: !!blockedReason(option),
+                }"
+                :disabled="!!blockedReason(option)"
                 :aria-pressed="chosen[slot.category] === option.id"
+                :title="blockedReason(option) || undefined"
                 @click="choose(slot.category, option.id)"
               >
                 <span class="option-name">{{ option.name }}</span>
+                <span v-if="blockedReason(option)" class="option-why">
+                  {{ blockedReason(option) }}
+                </span>
                 <span class="option-price price">${{ option.price }}</span>
               </button>
             </li>
@@ -260,6 +323,36 @@ onMounted(load)
 
 .option.active .option-price {
   color: var(--secondary);
+}
+
+/* Incompatible: dimmed and unclickable, but still readable, and it says why.
+   Kept in the list on purpose - a part that silently disappears teaches nothing. */
+.option.blocked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-style: dashed;
+  border-color: var(--border);
+}
+
+.option.blocked:hover {
+  border-color: var(--danger);
+}
+
+.option.blocked .option-name {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+}
+
+.option-why {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--danger);
+  text-align: right;
+}
+
+.compat-slot {
+  margin-top: var(--space-6);
 }
 
 /* ---------- Pinned summary ---------- */

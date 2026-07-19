@@ -27,6 +27,9 @@ const arr = (values) => `ARRAY[${values.map(str).join(', ')}]::TEXT[]`
 /** NULL, or a quoted string. */
 const nullable = (value) => (value === null || value === undefined ? 'NULL' : str(value))
 
+/** NULL, or a bare number (no quotes - these are INT columns). */
+const nullableNumber = (value) => (value === null || value === undefined ? 'NULL' : Number(value))
+
 const lines = [
   '-- MyRig catalog seed - GENERATED FILE, DO NOT EDIT BY HAND.',
   '-- Source of truth: db/catalog.js   Regenerate with: npm run db:gen-seed',
@@ -35,11 +38,14 @@ const lines = [
   'TRUNCATE products, learning_cards, upgrade_rules RESTART IDENTITY CASCADE;',
   '',
   '-- ---------- products ----------',
-  'INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason) VALUES',
+  'INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason,',
+  '                      socket, ram_type, tdp, wattage) VALUES',
   PRODUCTS.map(
     (p) =>
       `  (${str(p.name)}, ${str(p.category)}, ${str(p.kind)}, ${p.price}, ${nullable(p.tier)}, ` +
-      `${arr(p.best_for)}, ${arr(p.styles)}, ${str(p.reason)})`
+      `${arr(p.best_for)}, ${arr(p.styles)}, ${str(p.reason)}, ` +
+      `${nullable(p.socket)}, ${nullable(p.ram_type)}, ` +
+      `${nullableNumber(p.tdp)}, ${nullableNumber(p.wattage)})`
   ).join(',\n') + ';',
   '',
   '-- ---------- learning_cards ----------',

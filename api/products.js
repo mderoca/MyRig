@@ -57,7 +57,11 @@ export default async function handler(req, res) {
     // Each filter is applied as "param IS NULL OR <test>", so one query handles
     // every combination without building SQL by hand.
     const rows = await sql`
-      SELECT id, name, category, kind, price, tier, best_for, styles, reason, in_stock
+      -- socket/ram_type/tdp/wattage are what the Builder page needs to apply the
+      -- compatibility rules client-side. Omit them and every check silently
+      -- passes, because a NULL field means "no constraint".
+      SELECT id, name, category, kind, price, tier, best_for, styles, reason, in_stock,
+             socket, ram_type, tdp, wattage
       FROM products
       WHERE (${category}::TEXT IS NULL OR category = ${category})
         AND (${kind}::TEXT IS NULL OR kind = ${kind})

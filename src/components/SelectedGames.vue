@@ -13,7 +13,7 @@ const store = useSetupStore()
 
     <p v-if="!store.selectedGames.length" class="muted hint">
       Nothing selected yet. Your games shape the whole build - the genres and tags
-      RAWG returns are what tell MyRig whether you need frames or fidelity.
+      IGDB returns are what tell MyRig whether you need frames or fidelity.
     </p>
 
     <ul v-else class="tags">

@@ -12,6 +12,7 @@
     "check:engine": "node scripts/engine-check.mjs",
     "check:auth": "node scripts/auth-check.mjs",
     "db:setup": "node db/setup.js",
+    "db:reseed": "node db/reseed.js",
     "db:gen-seed": "node db/generate-seed.js"
   },
   "dependencies": {

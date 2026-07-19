@@ -2,7 +2,7 @@
  * The only place in the frontend that talks to the network.
  *
  * Every call goes to our own /api/* serverless routes. The browser never calls
- * RAWG or Neon directly - it has no key for either, by design.
+ * IGDB or Neon directly - it has no key for either, by design.
  *
  * `credentials: 'same-origin'` is what carries the session cookie. The cookie is
  * httpOnly, so this file cannot read it, and neither can any script injected

@@ -3,7 +3,7 @@
  * The three-column footer from the Figma: Get Started / Explore / Resources,
  * with the logo and a social row.
  *
- * The RAWG attribution is required by their terms wherever their data is shown.
+ * The IGDB attribution is required by their terms wherever their data is shown.
  * Do not remove it.
  */
 import Logo from './Logo.vue'
@@ -67,7 +67,7 @@ const columns = [
 
     <div class="container legal">
       <p class="muted">
-        Game data provided by <a href="https://rawg.io" target="_blank" rel="noopener">RAWG</a>.
+        Game data provided by <a href="https://www.igdb.com" target="_blank" rel="noopener">IGDB</a>.
       </p>
       <p class="muted">
         Prices are realistic samples for planning. Checkout is simulated - no payment is taken.

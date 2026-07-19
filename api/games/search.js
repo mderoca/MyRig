@@ -1,13 +1,13 @@
 /**
  * GET /api/games/search?q=valorant
  *
- * Searches the RAWG Video Games API and returns simplified game records.
- * The browser never talks to RAWG directly - this route holds the API key.
+ * Searches the IGDB games database and returns simplified game records.
+ * The browser never talks to IGDB directly - this route holds the credentials.
  *
  * Response: { games: [{ id, name, image, rating, genres, platforms, tags }] }
  */
 
-import { searchGames, RawgError } from '../_lib/rawg.js'
+import { searchGames, IgdbError } from '../_lib/igdb.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ query, count: games.length, games })
   } catch (err) {
-    const status = err instanceof RawgError ? err.status : 500
+    const status = err instanceof IgdbError ? err.status : 500
     console.error('[api/games/search]', err.message)
     return res.status(status).json({ error: err.message || 'Game search failed.' })
   }

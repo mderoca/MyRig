@@ -2,7 +2,7 @@
 /**
  * "Can I Run It?" - the page from the Figma.
  *
- * Search a real game (RAWG), and MyRig works out what it needs and what that
+ * Search a real game (IGDB), and MyRig works out what it needs and what that
  * costs, using the same engine the quiz uses. This is the clearest expression of
  * the game-first idea: the game decides the build.
  */
@@ -83,7 +83,7 @@ function addBuildToCart() {
       <span class="eyebrow">Can I run it?</span>
       <h1>Pick a game. See what it takes.</h1>
       <p class="centered">
-        MyRig reads the game's genres and tags from RAWG, works out whether it needs frames
+        MyRig reads the game's genres and tags from IGDB, works out whether it needs frames
         or fidelity, and builds the rig that runs it.
       </p>
     </div>
@@ -113,7 +113,7 @@ function addBuildToCart() {
         </button>
       </div>
 
-      <p v-if="searching" class="muted small searching">Searching RAWG...</p>
+      <p v-if="searching" class="muted small searching">Searching IGDB...</p>
 
       <ul v-if="results.length" class="results">
         <li v-for="game in results.slice(0, 6)" :key="game.id">

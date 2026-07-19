@@ -20,6 +20,18 @@
  *             casual | streaming | balanced   ('any' = fits every goal)
  *   styles    setup styles this item suits: rgb | minimalist | white | cozy |
  *             streamer | esports              ('any' = fits every style)
+ *
+ * COMPATIBILITY FIELDS. These are what stop the engine recommending a build that
+ * cannot be assembled. Null on anything they do not apply to.
+ *   socket    cpu + motherboard: 'AM4' | 'AM5' | 'LGA1700'. A CPU only fits a
+ *             motherboard with the SAME socket. This is why the old
+ *             'Intel i7 / Ryzen 7 Class CPU' had to be split into two products —
+ *             one part cannot be both LGA1700 and AM5.
+ *   ram_type  motherboard + ram: 'DDR4' | 'DDR5'. A board takes one or the other,
+ *             never both.
+ *   tdp       cpu + gpu: watts drawn under load. Feeds PSU sizing.
+ *   wattage   psu: watts supplied. Must cover the build's draw plus headroom —
+ *             see requiredWattage() in api/_lib/engine.js.
  */
 
 export const PARTS = [
@@ -29,6 +41,9 @@ export const PARTS = [
     category: 'cpu',
     price: 130,
     tier: 'budget',
+    socket: 'AM4',
+    ram_type: 'DDR4',
+    tdp: 65,
     best_for: ['casual', 'balanced', 'competitive_fps'],
     styles: ['any'],
     reason: 'A cheap 6-core CPU that still keeps frame rates high in esports and casual games.',
@@ -38,6 +53,9 @@ export const PARTS = [
     category: 'cpu',
     price: 200,
     tier: 'mid',
+    socket: 'AM5',
+    ram_type: 'DDR5',
+    tdp: 65,
     best_for: ['competitive_fps', 'balanced', 'high_graphics'],
     styles: ['any'],
     reason: 'Modern 6-core CPU that feeds a mid-range GPU without holding it back.',
@@ -47,18 +65,131 @@ export const PARTS = [
     category: 'cpu',
     price: 210,
     tier: 'mid',
+    socket: 'LGA1700',
+    ram_type: 'DDR5',
+    tdp: 125,
     best_for: ['balanced', 'casual', 'high_graphics'],
     styles: ['any'],
     reason: 'Well-rounded CPU for gaming plus everyday multitasking.',
   },
   {
-    name: 'Intel i7 / Ryzen 7 Class CPU',
+    name: 'Intel i7 Class CPU',
     category: 'cpu',
     price: 340,
     tier: 'high',
+    socket: 'LGA1700',
+    ram_type: 'DDR5',
+    tdp: 125,
     best_for: ['streaming', 'high_graphics', 'balanced'],
     styles: ['any'],
     reason: 'Extra cores handle encoding a stream while the game keeps running smoothly.',
+  },
+  {
+    name: 'Ryzen 7 7700 Class CPU',
+    category: 'cpu',
+    price: 330,
+    tier: 'high',
+    socket: 'AM5',
+    ram_type: 'DDR5',
+    tdp: 105,
+    best_for: ['streaming', 'high_graphics', 'balanced'],
+    styles: ['any'],
+    reason: 'Eight cores for streaming and heavy multitasking, on a platform with room to upgrade.',
+  },
+
+  // ---------------- Motherboard ----------------
+  // Every board here is chosen by SOCKET first (it has to fit the CPU) and then
+  // scored like anything else. Between them they cover all three sockets in the
+  // CPU list — if you add a CPU on a new socket, add a board for it too, or the
+  // engine can never pick that CPU.
+  {
+    name: 'B550 Motherboard (AM4)',
+    category: 'motherboard',
+    price: 80,
+    tier: 'budget',
+    socket: 'AM4',
+    ram_type: 'DDR4',
+    best_for: ['casual', 'balanced', 'competitive_fps'],
+    styles: ['any'],
+    reason: 'A dependable budget board for AM4 builds - everything you need, nothing you do not.',
+  },
+  {
+    name: 'B650 Motherboard (AM5)',
+    category: 'motherboard',
+    price: 130,
+    tier: 'mid',
+    socket: 'AM5',
+    ram_type: 'DDR5',
+    best_for: ['balanced', 'competitive_fps', 'high_graphics', 'streaming'],
+    styles: ['any'],
+    reason: 'Current-generation AMD board with DDR5 and room to drop in a faster CPU later.',
+  },
+  {
+    name: 'B760 Motherboard (LGA1700)',
+    category: 'motherboard',
+    price: 125,
+    tier: 'mid',
+    socket: 'LGA1700',
+    ram_type: 'DDR5',
+    best_for: ['balanced', 'casual', 'high_graphics', 'streaming'],
+    styles: ['any'],
+    reason: 'Solid Intel board with DDR5 support at a sensible price.',
+  },
+  {
+    name: 'X670E Motherboard (AM5)',
+    category: 'motherboard',
+    price: 220,
+    tier: 'high',
+    socket: 'AM5',
+    ram_type: 'DDR5',
+    best_for: ['high_graphics', 'streaming'],
+    styles: ['any'],
+    reason: 'Enthusiast AM5 board - faster storage lanes and better power delivery for a top-end CPU.',
+  },
+
+  // ---------------- Power supply ----------------
+  // Sized by the build's actual draw, not by tier. See requiredWattage() in
+  // api/_lib/engine.js: CPU tdp + GPU tdp + 100W for the rest of the system,
+  // then 25% headroom so the unit is not running flat out.
+  {
+    name: '550W Bronze PSU',
+    category: 'psu',
+    price: 55,
+    tier: 'budget',
+    wattage: 550,
+    best_for: ['casual', 'competitive_fps', 'balanced'],
+    styles: ['any'],
+    reason: 'Enough for a budget build with a mid-range card, with headroom to spare.',
+  },
+  {
+    name: '650W Gold PSU',
+    category: 'psu',
+    price: 80,
+    tier: 'mid',
+    wattage: 650,
+    best_for: ['balanced', 'competitive_fps', 'casual'],
+    styles: ['any'],
+    reason: 'The safe default for most builds - efficient, quiet, and enough for a mid-range GPU.',
+  },
+  {
+    name: '750W Gold PSU',
+    category: 'psu',
+    price: 110,
+    tier: 'high',
+    wattage: 750,
+    best_for: ['high_graphics', 'streaming', 'balanced'],
+    styles: ['any'],
+    reason: 'Comfortable headroom for a power-hungry graphics card and a high-core-count CPU.',
+  },
+  {
+    name: '850W Gold PSU',
+    category: 'psu',
+    price: 140,
+    tier: 'ultra',
+    wattage: 850,
+    best_for: ['high_graphics', 'streaming'],
+    styles: ['any'],
+    reason: 'Built for a top-end GPU under sustained load, with room for a future upgrade.',
   },
 
   // ---------------- GPU ----------------
@@ -67,6 +198,7 @@ export const PARTS = [
     category: 'gpu',
     price: 270,
     tier: 'budget',
+    tdp: 165,
     best_for: ['casual', 'competitive_fps', 'balanced'],
     styles: ['any'],
     reason: 'Strong value at 1080p, especially in lighter and competitive titles.',
@@ -76,6 +208,7 @@ export const PARTS = [
     category: 'gpu',
     price: 300,
     tier: 'mid',
+    tdp: 115,
     best_for: ['competitive_fps', 'balanced', 'streaming'],
     styles: ['any'],
     reason: 'Good for 1080p competitive gaming and high FPS esports titles.',
@@ -85,6 +218,7 @@ export const PARTS = [
     category: 'gpu',
     price: 520,
     tier: 'high',
+    tdp: 220,
     best_for: ['high_graphics', 'streaming', 'balanced'],
     styles: ['any'],
     reason: 'Comfortably drives 1440p with high settings in demanding modern games.',
@@ -94,6 +228,7 @@ export const PARTS = [
     category: 'gpu',
     price: 800,
     tier: 'ultra',
+    tdp: 320,
     best_for: ['high_graphics'],
     styles: ['any'],
     reason: 'Maximum visual quality - ray tracing and 1440p/4K in the heaviest games.',
@@ -105,6 +240,7 @@ export const PARTS = [
     category: 'ram',
     price: 40,
     tier: 'budget',
+    ram_type: 'DDR4',
     best_for: ['casual', 'competitive_fps', 'balanced'],
     styles: ['any'],
     reason: '16GB is the comfortable minimum for modern gaming.',
@@ -114,6 +250,7 @@ export const PARTS = [
     category: 'ram',
     price: 60,
     tier: 'mid',
+    ram_type: 'DDR5',
     best_for: ['competitive_fps', 'balanced', 'high_graphics'],
     styles: ['any'],
     reason: 'Faster memory that pairs with current-generation CPUs.',
@@ -123,6 +260,7 @@ export const PARTS = [
     category: 'ram',
     price: 110,
     tier: 'high',
+    ram_type: 'DDR5',
     best_for: ['streaming', 'high_graphics'],
     styles: ['any'],
     reason: 'Headroom for a game, a stream, a browser and Discord all at once.',
@@ -401,6 +539,22 @@ export const PRODUCTS = [
 ]
 
 export const LEARNING_CARDS = [
+  {
+    title: 'Motherboard',
+    category: 'motherboard',
+    short_description:
+      'The board everything else plugs into. Its socket decides which CPUs fit, and it decides whether the memory is DDR4 or DDR5.',
+    beginner_description:
+      'The motherboard is the board that everything else plugs into. The important thing for you is the socket: a CPU only fits a board with a matching socket, the same way a plug only fits one shape of outlet. The board also decides whether you buy DDR4 or DDR5 memory. MyRig picks a board that matches your CPU automatically, so you cannot end up with parts that do not fit.',
+  },
+  {
+    title: 'Power supply',
+    category: 'psu',
+    short_description:
+      'Turns wall power into what the parts need. It must supply more watts than the build draws, with headroom so it is not running flat out.',
+    beginner_description:
+      'The power supply feeds electricity to everything else. Add up what the processor and graphics card draw, add some for the rest of the machine, then leave roughly a quarter spare so the unit is not running at its absolute limit. Too small and the computer shuts off under load. MyRig works out the wattage your build needs and picks a unit that covers it.',
+  },
   {
     title: 'CPU',
     category: 'cpu',
