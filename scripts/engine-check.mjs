@@ -14,12 +14,14 @@
  *   - scores are in range and always carry an explanation
  *   - beginner notes appear if and only if beginner mode is on
  *   - different goals produce genuinely different builds
+ *   - every build is physically assemblable: CPU socket matches the motherboard,
+ *     RAM generation matches the motherboard, and the PSU covers the draw
  *
  * It runs against db/catalog.js directly, so it needs no database and no network.
  * Exits non-zero on failure.
  */
 
-import { recommendSetup } from '../api/_lib/engine.js'
+import { recommendSetup, checkCompatibility, requiredWattage } from '../api/_lib/engine.js'
 import { PARTS, ACCESSORIES, LEARNING_CARDS, UPGRADE_RULES } from '../db/catalog.js'
 
 const catalog = {
@@ -29,24 +31,27 @@ const catalog = {
   upgradeRules: UPGRADE_RULES,
 }
 
-// Stand-ins for what RAWG actually returns for these games.
+// What IGDB ACTUALLY returns for these three, copied from live responses on
+// 2026-07-19 (ids are IGDB's real ids). These were RAWG-shaped stand-ins until
+// the provider changed; fixtures that do not match the real vocabulary test
+// nothing useful, because the whole risk lives in the wording of the tags.
 const VALORANT = {
-  id: 1,
+  id: 126459,
   name: 'Valorant',
-  genres: ['Shooter'],
-  tags: ['Multiplayer', 'Competitive', 'FPS', 'Team-Based'],
+  genres: ['Shooter', 'Tactical'],
+  tags: ['Action', 'Fantasy', 'Science fiction', 'class-based', 'cartoon graphics', 'free-to-play', 'kill feed', 'voice chat'],
 }
 const CYBERPUNK = {
-  id: 2,
+  id: 1877,
   name: 'Cyberpunk 2077',
-  genres: ['RPG', 'Action'],
-  tags: ['Singleplayer', 'Open World', 'Atmospheric', 'Story Rich'],
+  genres: ['Shooter', 'Role-playing (RPG)', 'Adventure'],
+  tags: ['Action', 'Science fiction', 'Sandbox', 'Open world', 'cyberpunk', 'cybernetics', 'dystopian', 'futuristic'],
 }
 const MINECRAFT = {
-  id: 3,
+  id: 135400,
   name: 'Minecraft',
-  genres: ['Simulation', 'Arcade'],
-  tags: ['Sandbox', 'Building', 'Co-op', 'Casual'],
+  genres: ['Simulator', 'Adventure', 'Arcade'],
+  tags: ['Action', 'Fantasy', 'Survival', 'Sandbox', 'zombies', 'monsters', 'wizards', 'dragons'],
 }
 
 const CASES = [
@@ -118,6 +123,40 @@ for (const { label, quiz } of CASES) {
   const completeness = result.scores.find((s) => s.key === 'completeness').score
   if (completeness < 100) fail(`setup is incomplete (completeness ${completeness})`)
 
+  // Compatibility is a HARD constraint: an unassemblable build is a broken build.
+  const compat = result.compatibility
+  console.log(
+    `compatibility: ${compat.ok ? 'OK' : 'BROKEN'}  ` +
+      `draw ${compat.draw}W, needs ${compat.required}W  ` +
+      `(${compat.checks.map((c) => `${c.key}:${c.ok ? 'ok' : 'FAIL'}`).join(' ')})`
+  )
+  if (!compat.ok) {
+    for (const check of compat.checks.filter((c) => !c.ok)) fail(`incompatible - ${check.detail}`)
+  }
+
+  // Assert the parts directly too, not only the engine's own verdict - otherwise
+  // a checkCompatibility() that always returned ok would pass this script.
+  const partOf = (category) => result.items.find((i) => i.category === category)
+  const cpu = partOf('cpu')
+  const board = partOf('motherboard')
+  const ram = partOf('ram')
+  const psu = partOf('psu')
+
+  if (!cpu || !board) fail('build is missing a CPU or a motherboard')
+  else if (cpu.socket !== board.socket) {
+    fail(`socket mismatch: ${cpu.name} is ${cpu.socket}, ${board.name} is ${board.socket}`)
+  }
+  if (ram && board && ram.ramType !== board.ramType) {
+    fail(`memory mismatch: ${ram.name} is ${ram.ramType}, ${board.name} takes ${board.ramType}`)
+  }
+  if (!psu) fail('build has no power supply')
+  else {
+    const needed = requiredWattage(result.items.filter((i) => i.category !== 'psu'))
+    if (Number(psu.wattage) < needed) {
+      fail(`power supply too small: ${psu.name} supplies ${psu.wattage}W, build needs ${needed}W`)
+    }
+  }
+
   // The chosen style has to actually show up in what was picked.
   if (!result.items.some((i) => i.styleMatched)) {
     fail(`no item matches the chosen style "${quiz.setupStyle}"`)
@@ -165,6 +204,55 @@ if (!streaming.items.some((i) => i.category === 'webcam')) fail('streaming build
 if (nameOf(competitive, 'monitor') === nameOf(graphics, 'monitor')) {
   fail('competitive and high-graphics builds got the SAME monitor - no differentiation')
 }
+
+// ---------------------------------------------------------------------------
+// Compatibility: the checker must REJECT builds that are genuinely broken.
+//
+// Without these, every assertion above would still pass if checkCompatibility()
+// simply returned {ok: true}. A validator that never says no is not a validator.
+// ---------------------------------------------------------------------------
+console.log('\n=== compatibility rejection checks ===')
+
+const BAD_BUILDS = [
+  {
+    label: 'AM4 CPU on an AM5 board',
+    key: 'socket',
+    items: [
+      { category: 'cpu', name: 'Ryzen 5 5600', socket: 'AM4', tdp: 65 },
+      { category: 'motherboard', name: 'B650 Motherboard (AM5)', socket: 'AM5', ram_type: 'DDR5' },
+    ],
+  },
+  {
+    label: 'DDR4 memory in a DDR5 board',
+    key: 'memory',
+    items: [
+      { category: 'motherboard', name: 'B650 Motherboard (AM5)', socket: 'AM5', ram_type: 'DDR5' },
+      { category: 'ram', name: '16GB DDR4 RAM', ram_type: 'DDR4' },
+    ],
+  },
+  {
+    label: '550W PSU under a 320W GPU and a 125W CPU',
+    key: 'power',
+    items: [
+      { category: 'cpu', name: 'Intel i7 Class CPU', socket: 'LGA1700', tdp: 125 },
+      { category: 'gpu', name: 'High-End RTX Class GPU', tdp: 320 },
+      { category: 'psu', name: '550W Bronze PSU', wattage: 550 },
+    ],
+  },
+]
+
+for (const bad of BAD_BUILDS) {
+  const verdict = checkCompatibility(bad.items)
+  const rejected = !verdict.ok && verdict.checks.some((c) => c.key === bad.key && !c.ok)
+  console.log(`   ${rejected ? 'PASS' : 'FAIL'}  rejects: ${bad.label}`)
+  if (!rejected) fail(`checkCompatibility ACCEPTED a broken build: ${bad.label}`)
+}
+
+// And the arithmetic behind the power rule: 125 + 320 + 100 overhead = 545, +25% = 682.
+const expected = Math.ceil((125 + 320 + 100) * 1.25)
+const actual = requiredWattage([{ tdp: 125 }, { tdp: 320 }])
+console.log(`   ${actual === expected ? 'PASS' : 'FAIL'}  requiredWattage = ${actual}W (expected ${expected}W)`)
+if (actual !== expected) fail(`requiredWattage returned ${actual}W, expected ${expected}W`)
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`)
 process.exit(failures ? 1 : 0)

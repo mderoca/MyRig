@@ -12,6 +12,7 @@ import { useAuthStore } from '../stores/authStore.js'
 import { useCartStore } from '../stores/cartStore.js'
 import RecommendationCard from '../components/RecommendationCard.vue'
 import BudgetBreakdown from '../components/BudgetBreakdown.vue'
+import CompatibilityPanel from '../components/CompatibilityPanel.vue'
 import StyleSummary from '../components/StyleSummary.vue'
 import SetupScores from '../components/SetupScores.vue'
 import UpgradePath from '../components/UpgradePath.vue'
@@ -141,6 +142,13 @@ function startOver() {
           <RecommendationCard v-for="item in group.items" :key="item.name" :item="item" />
         </div>
       </div>
+    </section>
+
+    <!-- Compatibility ---------------------------------------------------- -->
+    <!-- Directly under the parts list, because "do these actually fit
+         together?" is the first question anyone asks about a build. -->
+    <section v-if="setup.compatibility" class="section container">
+      <CompatibilityPanel :compatibility="setup.compatibility" />
     </section>
 
     <!-- Budget ----------------------------------------------------------- -->

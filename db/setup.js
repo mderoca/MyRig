@@ -30,72 +30,98 @@ if (!process.env.DATABASE_URL) {
 
 // Imported after the env check so connection.js sees DATABASE_URL.
 const { sql } = await import('./connection.js')
-const { PRODUCTS, LEARNING_CARDS, UPGRADE_RULES } = await import('./catalog.js')
+const { seedCatalog } = await import('./seed-catalog.js')
 
-/** Split schema.sql into statements, ignoring comment-only lines. */
+/**
+ * Refuse to destroy accounts silently.
+ *
+ * This script DROPs every table. On a fresh database that is exactly right; on a
+ * database someone has registered against, it wipes their login with no warning
+ * — which is precisely how a working registration looks broken afterwards.
+ *
+ * So: count what would be lost first. If anything would, stop and say so, unless
+ * --force was passed. A brand new database has no tables at all, which throws,
+ * and that is the "nothing to lose, carry on" case.
+ */
+async function assertSafeToDrop() {
+  let counts
+  try {
+    ;[counts] = await sql`
+      SELECT (SELECT COUNT(*)::INT FROM users)        AS users,
+             (SELECT COUNT(*)::INT FROM orders)       AS orders,
+             (SELECT COUNT(*)::INT FROM saved_builds) AS builds
+    `
+  } catch {
+    return // No tables yet - fresh database, nothing to protect.
+  }
+
+  const atRisk = counts.users + counts.orders + counts.builds
+  if (atRisk === 0) return
+
+  if (process.argv.includes('--force')) {
+    console.log(
+      `\nWARNING: --force given. Destroying ${counts.users} user account(s), ` +
+        `${counts.orders} order(s) and ${counts.builds} saved build(s).\n`
+    )
+    return
+  }
+
+  console.error(
+    `\nSTOPPED. This would delete real data:\n\n` +
+      `    ${counts.users} user account(s)\n` +
+      `    ${counts.orders} order(s)\n` +
+      `    ${counts.builds} saved build(s)\n\n` +
+      `db:setup DROPs every table. You almost certainly want:\n\n` +
+      `    npm run db:reseed      reloads the catalog, keeps accounts and history\n\n` +
+      `Only db/schema.sql changes need a full rebuild. If this really is one:\n\n` +
+      `    npm run db:setup -- --force\n`
+  )
+  process.exit(1)
+}
+
+await assertSafeToDrop()
+
+/**
+ * Split schema.sql into individual statements.
+ *
+ * Comments are stripped BEFORE splitting, not after. Splitting first breaks on
+ * `DROP TABLE IF EXISTS parts;   -- superseded by products`, where the semicolon
+ * is followed by a trailing comment rather than end-of-line — everything after
+ * it then arrives as one chunk and Neon rejects it with "cannot insert multiple
+ * commands into a prepared statement".
+ *
+ * Split on /\r?\n/, not '\n': on a CRLF checkout every line would otherwise keep
+ * its trailing \r, and JS `.` does not match \r — so `/--.*$/` matches nothing
+ * and no comment is stripped at all.
+ *
+ * Caveat: this treats `--` as a comment everywhere, so a `--` inside a string
+ * literal would be mangled. schema.sql contains none. Keep it that way.
+ */
 function statementsFrom(sqlText) {
   return sqlText
-    .split(/;\s*$/m)
-    .map((statement) =>
-      statement
-        .split('\n')
-        .filter((line) => !line.trim().startsWith('--'))
-        .join('\n')
-        .trim()
-    )
+    .split(/\r?\n/)
+    .map((line) => line.replace(/--.*$/, ''))
+    .join('\n')
+    .split(';')
+    .map((statement) => statement.trim())
     .filter(Boolean)
 }
 
+// Note: `sql` is a tagged-template function. Called directly with a query string
+// and a parameter array it runs an ordinary parameterized query — which is what
+// this file needs, since the statements are built at runtime rather than written
+// as literals. There is no `sql.query()` on @neondatabase/serverless 0.x.
 console.log('Applying schema...')
 for (const statement of statementsFrom(readFileSync(join(here, 'schema.sql'), 'utf8'))) {
-  await sql.query(statement)
+  await sql(statement)
 }
 
-console.log('Seeding products...')
-for (const product of PRODUCTS) {
-  await sql.query(
-    `INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [
-      product.name,
-      product.category,
-      product.kind,
-      product.price,
-      product.tier,
-      product.best_for,
-      product.styles,
-      product.reason,
-    ]
-  )
-}
-
-console.log('Seeding learning cards...')
-for (const card of LEARNING_CARDS) {
-  await sql.query(
-    `INSERT INTO learning_cards (title, short_description, beginner_description, category)
-     VALUES ($1, $2, $3, $4)`,
-    [card.title, card.short_description, card.beginner_description, card.category]
-  )
-}
-
-console.log('Seeding upgrade rules...')
-for (const rule of UPGRADE_RULES) {
-  await sql.query(
-    `INSERT INTO upgrade_rules (condition_type, condition_value, upgrade_name, priority, estimated_cost, reason)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [
-      rule.condition_type,
-      rule.condition_value,
-      rule.upgrade_name,
-      rule.priority,
-      rule.estimated_cost,
-      rule.reason,
-    ]
-  )
-}
+const counts = await seedCatalog(sql)
 
 console.log(
-  `\nDone. Seeded ${PRODUCTS.length} products, ${LEARNING_CARDS.length} learning cards, ` +
-    `${UPGRADE_RULES.length} upgrade rules.\n` +
-    `Register an account in the app to create your first user.\n`
+  `\nDone. Seeded ${counts.products} products, ${counts.learningCards} learning cards, ` +
+    `${counts.upgradeRules} upgrade rules.\n` +
+    `Register an account in the app to create your first user.\n` +
+    `\nNext time you only change db/catalog.js, run 'npm run db:reseed' instead -\n` +
+    `it reloads the catalog without dropping accounts.\n`
 )

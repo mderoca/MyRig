@@ -1,13 +1,13 @@
 /**
  * GET /api/games/:id
  *
- * Optional detail route. Returns the full RAWG record for one game -
+ * Optional detail route. Returns the full IGDB record for one game -
  * description, genres, platforms, tags and screenshots.
  *
  * Response: { game: { ..., description, screenshots[] } }
  */
 
-import { getGame, RawgError } from '../_lib/rawg.js'
+import { getGame, IgdbError } from '../_lib/igdb.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ game })
   } catch (err) {
-    const status = err instanceof RawgError ? err.status : 500
+    const status = err instanceof IgdbError ? err.status : 500
     console.error('[api/games/:id]', err.message)
     return res.status(status).json({ error: err.message || 'Could not load that game.' })
   }

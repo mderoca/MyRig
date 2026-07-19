@@ -17,10 +17,17 @@
 // --------------------------------------------------------------------------
 
 /** Budget tiers, and the total spend each one targets for the WHOLE setup. */
+/**
+ * Caps rose by ~$150 per tier when compatibility checking landed. A build now
+ * has to include a motherboard and a power supply, which it always really
+ * needed — the old caps bought a setup with no way to assemble it. At $900 the
+ * extra parts pushed every desk accessory out of the budget, which broke the
+ * one thing MyRig claims over PCPartPicker: that it plans a SETUP, not a tower.
+ */
 export const BUDGET_TIERS = {
-  budget: { label: 'Budget', range: 'Under $900', cap: 900 },
-  balanced: { label: 'Balanced', range: '$900 - $1500', cap: 1500 },
-  high: { label: 'High-end', range: '$1500+', cap: 2200 },
+  budget: { label: 'Budget', range: 'Under $1,050', cap: 1050 },
+  balanced: { label: 'Balanced', range: '$1,050 - $1,700', cap: 1700 },
+  high: { label: 'High-end', range: '$1,700+', cap: 2450 },
 }
 
 export const GAMING_GOALS = {
@@ -46,18 +53,25 @@ const TIER_ORDER = ['budget', 'mid', 'high', 'ultra']
 /** Which budget tier maps to which baseline component tier. */
 const BASE_TIER = { budget: 'budget', balanced: 'mid', high: 'high' }
 
-/** Share of the total budget each category is allowed to spend. Sums to ~0.90;
- *  the remaining ~10% funds the style/goal extras (mic, lighting, decor...). */
+/** Share of the total budget each category is allowed to spend. Sums to ~0.91;
+ *  the remainder funds the style/goal extras (mic, lighting, decor...).
+ *
+ *  ORDER MATTERS. The selection loop walks these keys in order, and the
+ *  compatibility rules are dependent: the motherboard is filtered by the CPU's
+ *  socket, and the RAM by the motherboard's memory type. Move `cpu` below
+ *  `motherboard` and the socket filter has nothing to filter against. */
 const ALLOCATION = {
-  cpu: 0.15,
-  gpu: 0.3,
+  cpu: 0.13,
+  motherboard: 0.07,
   ram: 0.05,
+  gpu: 0.26,
+  psu: 0.05,
   storage: 0.06,
-  case: 0.06,
-  monitor: 0.14,
-  keyboard: 0.05,
-  mouse: 0.04,
-  headset: 0.05,
+  case: 0.05,
+  monitor: 0.13,
+  keyboard: 0.04,
+  mouse: 0.03,
+  headset: 0.04,
 }
 
 /**
@@ -94,7 +108,7 @@ const UPGRADE_PRIORITY = {
 }
 
 /** Categories that come from the `parts` table (the rest come from `accessories`). */
-const PART_CATEGORIES = ['cpu', 'gpu', 'ram', 'storage', 'case', 'monitor']
+const PART_CATEGORIES = ['cpu', 'motherboard', 'gpu', 'ram', 'psu', 'storage', 'case', 'monitor']
 
 /** How far over its allowance a category may go before it is treated as unaffordable. */
 const ALLOWANCE_SLACK = 1.5
@@ -102,6 +116,8 @@ const ALLOWANCE_SLACK = 1.5
 /** Which section of the budget breakdown each category rolls up into. */
 const GROUP_OF = {
   cpu: 'tower',
+  motherboard: 'tower',
+  psu: 'tower',
   gpu: 'tower',
   ram: 'tower',
   storage: 'tower',
@@ -119,6 +135,8 @@ const GROUP_OF = {
 /** The categories a setup must contain to count as "complete". */
 const CORE_CATEGORIES = [
   'cpu',
+  'motherboard',
+  'psu',
   'gpu',
   'ram',
   'storage',
@@ -129,7 +147,7 @@ const CORE_CATEGORIES = [
   'headset',
 ]
 
-/** RAWG genre/tag words that hint at what kind of player this is. */
+/** IGDB genre/tag words that hint at what kind of player this is. */
 const GAME_SIGNALS = {
   competitive: [
     'shooter',
@@ -187,8 +205,56 @@ const bump = (tier, by) => TIER_ORDER[clamp(tierIndex(tier) + by, 0, TIER_ORDER.
 const money = (n) => Math.round(Number(n) || 0)
 const has = (list, value) => Array.isArray(list) && list.includes(value)
 
+// --------------------------------------------------------------------------
+// Compatibility
+// --------------------------------------------------------------------------
+//
+// The rules themselves live in shared/compatibility.js so the Builder page can
+// apply exactly the same ones. Re-exported here because engine.js is what
+// everything server-side already imports.
+
+export { buildDraw, requiredWattage, isCompatible, checkCompatibility } from '../../shared/compatibility.js'
+import { requiredWattage, isCompatible, checkCompatibility } from '../../shared/compatibility.js'
+
+
 /**
- * Reads the selected RAWG games and works out what kind of player this is.
+ * Re-fit the power supply to the FINISHED build.
+ *
+ * Called after the upgrade pass, because that pass can swap in a much hungrier
+ * GPU. Picks the cheapest unit that covers the load. If nothing in the catalog
+ * is affordable it still returns the cheapest SUFFICIENT one rather than the
+ * cheapest one — going slightly over budget is recoverable, shipping a build
+ * that trips its own PSU is not.
+ *
+ * Returns the price difference (may be negative if the build got cheaper).
+ */
+function fitPowerSupply(picked, pool) {
+  const index = picked.findIndex((item) => item.category === 'psu')
+  const others = picked.filter((item) => item.category !== 'psu')
+  const needed = requiredWattage(others)
+
+  const sufficient = pool
+    .filter((item) => item.category === 'psu' && Number(item.wattage) >= needed)
+    .sort((a, b) => money(a.price) - money(b.price))
+
+  if (!sufficient.length) return 0
+
+  const chosen = sufficient[0]
+  const current = index === -1 ? null : picked[index]
+
+  if (current && current.name === chosen.name) return 0
+
+  if (index === -1) {
+    picked.push(chosen)
+    return money(chosen.price)
+  }
+
+  picked[index] = chosen
+  return money(chosen.price) - money(current.price)
+}
+
+/**
+ * Reads the selected IGDB games and works out what kind of player this is.
  * Returns a 0-1 strength for each of competitive / graphics / casual, plus the
  * dominant one. Used to justify and fine-tune the build.
  */
@@ -199,10 +265,17 @@ export function readGameSignal(games = []) {
     const words = [...(game.genres || []), ...(game.tags || [])]
       .map((w) => String(w).toLowerCase())
 
+    // Count EVERY matching word, not just whether one matched.
+    //
+    // Presence-counting (+1 per category) throws away magnitude and ties
+    // constantly. Cyberpunk 2077 is the case that proved it: `shooter` scores
+    // competitive, `sandbox` scores casual, and `rpg` / `adventure` /
+    // `open world` score graphics — a 1-1-1 tie, silently broken by whichever
+    // key Object.entries happened to yield first. It came out "competitive",
+    // so the app told you to buy frames for a game that wants fidelity.
+    // Counting words makes that 3-1-1 for graphics, which is the honest read.
     for (const [signal, keywords] of Object.entries(GAME_SIGNALS)) {
-      if (words.some((word) => keywords.some((kw) => word.includes(kw)))) {
-        counts[signal] += 1
-      }
+      counts[signal] += words.filter((word) => keywords.some((kw) => word.includes(kw))).length
     }
   }
 
@@ -367,6 +440,11 @@ function upgradePass(picked, pool, { goal, style, leftover }) {
 
       const current = picked[index]
 
+      // Everything except the item being replaced — an upgrade has to fit the
+      // build it is joining, so a faster CPU on a different socket is not an
+      // upgrade, it is a different build.
+      const rest = picked.filter((_, i) => i !== index)
+
       const upgrades = pool
         .filter(
           (candidate) =>
@@ -374,7 +452,8 @@ function upgradePass(picked, pool, { goal, style, leftover }) {
             tierIndex(candidate.tier) > tierIndex(current.tier) &&
             goalFit(candidate, goal) >= goalFit(current, goal) &&
             styleFit(candidate, style) >= styleFit(current, style) &&
-            money(candidate.price) - money(current.price) <= budget
+            money(candidate.price) - money(current.price) <= budget &&
+            isCompatible(candidate, rest)
         )
         // Take the biggest jump we can pay for.
         .sort((a, b) => tierIndex(b.tier) - tierIndex(a.tier) || money(b.price) - money(a.price))
@@ -698,9 +777,16 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
 
   // ---- 2. The nine core categories, each with its slice of the core budget ----
   for (const [category, share] of Object.entries(allocation)) {
-    const pool = PART_CATEGORIES.includes(category)
+    const source = PART_CATEGORIES.includes(category)
       ? parts.filter((p) => p.category === category)
       : accessories.filter((a) => a.category === category)
+
+    // HARD constraint: incompatible parts are removed before scoring, so the
+    // engine physically cannot choose one. If the filter empties the pool we
+    // fall back to the unfiltered list rather than leaving a hole in the build —
+    // a visible "not compatible" verdict beats a setup with no motherboard.
+    const compatible = source.filter((candidate) => isCompatible(candidate, picked))
+    const pool = compatible.length ? compatible : source
 
     const item = pickItem(pool, {
       goal,
@@ -720,6 +806,11 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
   if (headroom > 0) {
     upgradePass(picked, parts, { goal, style, leftover: headroom })
   }
+
+  // ---- 3b. Re-fit the power supply to what the build actually became ----
+  // The upgrade pass may have swapped in a far hungrier GPU, and a PSU sized for
+  // the pre-upgrade build would be undersized for the one we are shipping.
+  fitPowerSupply(picked, parts)
 
   // ---- 4. Buy the extras: essentials first, then style flourishes ----
   let remaining = cap - sumPrice(picked)
@@ -762,6 +853,12 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
     best_for: item.best_for || [],
     styleMatched: has(item.styles, style),
     beginnerNote: beginnerMode ? noteFor(item.category) : null,
+    // Compatibility specs, so the UI can show WHY these parts go together.
+    // Null on everything they do not apply to, which is most items.
+    socket: item.socket ?? null,
+    ramType: item.ram_type ?? null,
+    tdp: item.tdp ?? null,
+    wattage: item.wattage ?? null,
   }))
 
   // ---- 5. Upgrade path + scores ----
@@ -800,5 +897,8 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
     scores,
     styleSummary: buildStyleSummary(picked, style),
     upgradePath,
+    // Re-derived from the finished build rather than taken on trust from the
+    // filtering above, so a bug in selection shows up here as a failed check.
+    compatibility: checkCompatibility(picked),
   }
 }

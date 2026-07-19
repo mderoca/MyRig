@@ -10,7 +10,7 @@
  *     gamingGoal:   'competitive_fps' | 'high_graphics' | 'casual' | 'streaming' | 'balanced',
  *     setupStyle:   'rgb' | 'minimalist' | 'white' | 'cozy' | 'streamer' | 'esports',
  *     beginnerMode: boolean,
- *     games:        [{ id, name, image, rating, genres[], platforms[], tags[] }]   // from RAWG
+ *     games:        [{ id, name, image, rating, genres[], platforms[], tags[] }]   // from IGDB
  *   }
  *
  * Response:

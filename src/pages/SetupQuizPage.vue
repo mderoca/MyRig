@@ -144,7 +144,7 @@ function choose(field, value) {
             <h2>Which games do you play?</h2>
             <p class="muted">
               Optional, but this is the part that makes MyRig different. Searches the real
-              RAWG game database.
+              IGDB game database.
             </p>
           </span>
         </legend>

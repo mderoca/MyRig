@@ -43,7 +43,15 @@ CREATE TABLE products (
   best_for    TEXT[]         NOT NULL DEFAULT '{}',  -- gaming goals this suits
   styles      TEXT[]         NOT NULL DEFAULT '{}',  -- setup styles this suits
   reason      TEXT           NOT NULL,  -- why the engine picked it / the store blurb
-  in_stock    BOOLEAN        NOT NULL DEFAULT TRUE
+  in_stock    BOOLEAN        NOT NULL DEFAULT TRUE,
+
+  -- Compatibility. NULL wherever the field does not apply, which is most rows.
+  -- The engine treats NULL as "no constraint", so an accessory never blocks a
+  -- build. See COMPATIBILITY_RULES in api/_lib/engine.js.
+  socket      TEXT,                     -- cpu + motherboard: AM4 | AM5 | LGA1700
+  ram_type    TEXT,                     -- motherboard + ram: DDR4 | DDR5
+  tdp         INT CHECK (tdp IS NULL OR tdp >= 0),          -- cpu + gpu: watts drawn
+  wattage     INT CHECK (wattage IS NULL OR wattage > 0)    -- psu: watts supplied
 );
 
 CREATE INDEX products_category_idx ON products (category);

@@ -40,7 +40,7 @@ const PATHS = [
 const DIFFERENTIATORS = [
   {
     title: 'Game-first recommendations',
-    body: 'The build starts from the games you actually play. MyRig reads their genres and tags from RAWG - a Valorant player and an Elden Ring player get different rigs at the same budget.',
+    body: 'The build starts from the games you actually play. MyRig reads their genres and tags from IGDB - a Valorant player and an Elden Ring player get different rigs at the same budget.',
   },
   {
     title: 'Full setup budget',
