@@ -5,7 +5,7 @@
  * not have is not an error.
  */
 
-import { assertSameOrigin, endSession, AuthError } from '../_lib/auth.js'
+import { assertSameOrigin, endSession, AuthError } from '../auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

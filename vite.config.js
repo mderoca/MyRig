@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import dotenv from 'dotenv'
 
@@ -31,15 +31,16 @@ function vercelApiDevServer() {
         if (existsSync(staticPath)) {
           handlerPath = staticPath
         } else if (segments.length > 1) {
-          const dynamicPath = resolve(
-            process.cwd(),
-            'api',
-            ...segments.slice(0, -1),
-            '[id].js'
-          )
-          if (existsSync(dynamicPath)) {
-            handlerPath = dynamicPath
-            params.id = segments[segments.length - 1]
+          // Any [param].js in the parent directory, not just [id].js - Vercel
+          // names the query key after the file, so api/auth/[action].js gives
+          // req.query.action. Hardcoding 'id' here silently 404s every other one.
+          const dir = resolve(process.cwd(), 'api', ...segments.slice(0, -1))
+          if (existsSync(dir)) {
+            const dynamicFile = readdirSync(dir).find((name) => /^\[.+\]\.js$/.test(name))
+            if (dynamicFile) {
+              handlerPath = resolve(dir, dynamicFile)
+              params[dynamicFile.slice(1, -4)] = segments[segments.length - 1]
+            }
           }
         }
 
