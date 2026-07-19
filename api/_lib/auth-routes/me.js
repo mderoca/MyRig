@@ -6,8 +6,8 @@
  * signed out is a normal state, not an error.
  */
 
-import { getUser, publicUser } from '../_lib/auth.js'
-import { hasDatabase } from '../../db/connection.js'
+import { getUser, publicUser } from '../auth.js'
+import { hasDatabase } from '../../../db/connection.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

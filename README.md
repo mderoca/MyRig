@@ -215,11 +215,31 @@ on it.
 1. Push the repo to GitHub.
 2. Import it at <https://vercel.com/new>. Vercel detects Vite from `vercel.json`.
 3. Add `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `DATABASE_URL` and `AUTH_SECRET` under **Settings → Environment
-   Variables**.
+   Variables**, *before* the first build — otherwise it deploys fine and 503s on every
+   data route. Use a **different** `AUTH_SECRET` than your local one: a token minted in dev
+   should not be valid in production.
 4. Deploy. Files in `/api` become serverless functions; everything else is a static SPA.
 
 `vercel.json` rewrites every non-`/api` path to `index.html` so Vue Router's history mode
 survives a hard refresh of `/shop`, `/orders`, etc.
+
+### The 12-function budget
+
+**Every file under `/api` becomes its own serverless function, and Vercel's Hobby plan
+allows 12 per deployment.** Files under `api/_lib/` do not count — that is the whole reason
+the engine, the IGDB client and the auth handlers live there.
+
+The project currently uses **10**:
+
+```
+auth/[action]  builds  can-i-run  games/[id]  games/search
+learning  orders  products  recommend  wishlist
+```
+
+`api/auth/[action].js` is one function serving `/api/auth/register`, `/login`, `/logout`
+and `/me`. As four separate files the project sat at 13 and the build failed before
+deploying anything. **Adding two more route files will break the deploy again** — fold new
+endpoints into an existing dynamic route rather than adding top-level files.
 
 The session cookie gets the `Secure` flag automatically in production (it is omitted in dev
 so it works over plain `http://localhost`). See `startSession()` in `api/_lib/auth.js`.
@@ -248,10 +268,12 @@ src/
 
 api/
   _lib/         auth.js        hashing, sessions, CSRF, rate limiting  <- security lives here
+                auth-routes/   register.js login.js logout.js me.js — the four
+                               handlers, dispatched by api/auth/[action].js
                 engine.js      the recommendation engine (pure functions)
                 igdb.js        server-side IGDB client — holds the credentials + token cache
                 catalog.js     loads products out of Neon
-  auth/         register.js  login.js  logout.js  me.js
+  auth/         [action].js    ONE function for all four auth endpoints
   games/        search.js  [id].js
   products.js   learning.js  recommend.js  can-i-run.js  builds.js  wishlist.js  orders.js
 

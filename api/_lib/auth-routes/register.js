@@ -5,8 +5,8 @@
  * Response: { user: { id, email, displayName, createdAt } }
  */
 
-import { sql } from '../../db/connection.js'
-import { assertDatabase, DatabaseNotConfigured } from '../_lib/catalog.js'
+import { sql } from '../../../db/connection.js'
+import { assertDatabase, DatabaseNotConfigured } from '../catalog.js'
 import {
   AuthError,
   assertSameOrigin,
@@ -15,7 +15,7 @@ import {
   startSession,
   validateCredentials,
   publicUser,
-} from '../_lib/auth.js'
+} from '../auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
