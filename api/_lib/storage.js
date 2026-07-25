@@ -30,3 +30,35 @@ export function assertStorageConfigured() {
     )
   }
 }
+
+/**
+ * Given a public Supabase Storage URL, return the object path inside the given
+ * bucket (e.g. `products/17/12345.png`). Returns null when the URL is empty,
+ * points at a different bucket, or is not recognisable — callers treat that as
+ * "nothing to delete" rather than an error.
+ *
+ * Public URLs look like:
+ *   https://<project>.supabase.co/storage/v1/object/public/<bucket>/<path>
+ */
+export function objectPathFromPublicUrl(url, bucket) {
+  if (typeof url !== 'string' || !url) return null
+  const marker = `/storage/v1/object/public/${bucket}/`
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  return url.slice(idx + marker.length)
+}
+
+/**
+ * Best-effort delete of an object we're about to orphan. Never throws — if the
+ * old image is unreachable or already gone, that's not worth failing a
+ * successful replace over.
+ */
+export async function deleteObjectIfPresent(bucket, path) {
+  if (!path) return
+  try {
+    const { error } = await storageAdmin.storage.from(bucket).remove([path])
+    if (error) console.warn('[storage] could not delete old object', path, error.message)
+  } catch (err) {
+    console.warn('[storage] delete threw for', path, err.message)
+  }
+}

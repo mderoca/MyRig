@@ -21,6 +21,8 @@ import { AuthError, assertSameOrigin, requireAdmin } from '../_lib/auth.js'
 import {
   PRODUCT_IMAGES_BUCKET,
   assertStorageConfigured,
+  deleteObjectIfPresent,
+  objectPathFromPublicUrl,
   storageAdmin,
 } from '../_lib/storage.js'
 
@@ -75,6 +77,10 @@ export default async function handler(req, res) {
       return res.status(413).json({ error: `Image must be 1 byte to ${MAX_BYTES} bytes.` })
     }
 
+    // Grab the current URL first so we can garbage-collect it after the swap.
+    const [existing] = await sql`SELECT url FROM site_images WHERE key = ${key}`
+    const previousPath = objectPathFromPublicUrl(existing?.url, PRODUCT_IMAGES_BUCKET)
+
     const objectPath = `site/${key}/${Date.now()}.${extension}`
 
     const { error: uploadError } = await storageAdmin.storage
@@ -97,6 +103,10 @@ export default async function handler(req, res) {
       VALUES (${key}, ${imageUrl}, NOW())
       ON CONFLICT (key) DO UPDATE SET url = EXCLUDED.url, updated_at = NOW()
     `
+
+    // Best-effort delete of the old object; failure leaves an orphan but does
+    // not unwind the replace — the new image is already live.
+    await deleteObjectIfPresent(PRODUCT_IMAGES_BUCKET, previousPath)
 
     return res.status(200).json({ key, imageUrl })
   } catch (err) {

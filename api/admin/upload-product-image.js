@@ -26,6 +26,8 @@ import { AuthError, assertSameOrigin, requireAdmin } from '../_lib/auth.js'
 import {
   PRODUCT_IMAGES_BUCKET,
   assertStorageConfigured,
+  deleteObjectIfPresent,
+  objectPathFromPublicUrl,
   storageAdmin,
 } from '../_lib/storage.js'
 
@@ -74,11 +76,13 @@ export default async function handler(req, res) {
     }
 
     // Confirm the product exists before uploading, so we don't leave orphan
-    // objects in the bucket if the caller made up a productId.
-    const [product] = await sql`SELECT id FROM products WHERE id = ${productId}`
+    // objects in the bucket if the caller made up a productId. Also grab the
+    // current image_url so we can garbage-collect it once the swap succeeds.
+    const [product] = await sql`SELECT id, image_url FROM products WHERE id = ${productId}`
     if (!product) {
       return res.status(404).json({ error: 'No product with that id.' })
     }
+    const previousPath = objectPathFromPublicUrl(product.image_url, PRODUCT_IMAGES_BUCKET)
 
     // Timestamp keeps successive uploads for the same product from colliding,
     // and prevents someone learning a URL by guessing product ids alone.
@@ -100,6 +104,11 @@ export default async function handler(req, res) {
     const imageUrl = publicUrl.publicUrl
 
     await sql`UPDATE products SET image_url = ${imageUrl} WHERE id = ${productId}`
+
+    // The DB now points at the new object. Best-effort delete of the old one —
+    // a failure here leaves an orphan but does NOT unwind the replace, since
+    // the user's intent (new image is live) has already been served.
+    await deleteObjectIfPresent(PRODUCT_IMAGES_BUCKET, previousPath)
 
     return res.status(200).json({ imageUrl })
   } catch (err) {
