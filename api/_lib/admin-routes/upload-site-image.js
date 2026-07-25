@@ -16,15 +16,15 @@
  * Response: { key, imageUrl }
  */
 
-import { sql } from '../../db/connection.js'
-import { AuthError, assertSameOrigin, requireAdmin } from '../_lib/auth.js'
+import { sql } from '../../../db/connection.js'
+import { AuthError, assertSameOrigin, requireAdmin } from '../auth.js'
 import {
   PRODUCT_IMAGES_BUCKET,
   assertStorageConfigured,
   deleteObjectIfPresent,
   objectPathFromPublicUrl,
   storageAdmin,
-} from '../_lib/storage.js'
+} from '../storage.js'
 
 const ALLOWED_TYPES = {
   'image/jpeg': 'jpg',
@@ -116,8 +116,4 @@ export default async function handler(req, res) {
     console.error('[api/admin/upload-site-image]', err)
     return res.status(500).json({ error: 'Upload failed.' })
   }
-}
-
-export const config = {
-  api: { bodyParser: { sizeLimit: '8mb' } },
 }
