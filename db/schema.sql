@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS upgrade_rules;
 DROP TABLE IF EXISTS learning_cards;
 DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS site_images;
 DROP TABLE IF EXISTS parts;        -- superseded by `products`
 DROP TABLE IF EXISTS accessories;  -- superseded by `products`
 
@@ -51,7 +52,11 @@ CREATE TABLE products (
   socket      TEXT,                     -- cpu + motherboard: AM4 | AM5 | LGA1700
   ram_type    TEXT,                     -- motherboard + ram: DDR4 | DDR5
   tdp         INT CHECK (tdp IS NULL OR tdp >= 0),          -- cpu + gpu: watts drawn
-  wattage     INT CHECK (wattage IS NULL OR wattage > 0)    -- psu: watts supplied
+  wattage     INT CHECK (wattage IS NULL OR wattage > 0),   -- psu: watts supplied
+
+  -- Public URL of the product image in Supabase Storage (bucket: product-images).
+  -- Nullable so seed rows without a picture still render with a placeholder.
+  image_url   TEXT
 );
 
 CREATE INDEX products_category_idx ON products (category);
@@ -79,6 +84,15 @@ CREATE TABLE upgrade_rules (
   reason          TEXT           NOT NULL
 );
 
+-- Editable site chrome. One row per named slot (e.g. 'home_hero', 'logo').
+-- The URL points at an object in the `product-images` Supabase Storage bucket
+-- (kept in the same bucket rather than a second one — it's a small site).
+CREATE TABLE site_images (
+  key        TEXT        PRIMARY KEY,
+  url        TEXT        NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ---------------------------------------------------------------------------
 -- Accounts
 -- ---------------------------------------------------------------------------
@@ -95,6 +109,7 @@ CREATE TABLE users (
   email         TEXT        NOT NULL UNIQUE,
   password_hash TEXT        NOT NULL,
   display_name  TEXT        NOT NULL,
+  role          TEXT        NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

@@ -84,3 +84,54 @@ export const removeFromWishlist = (productId) =>
 export const listOrders = () => request('/api/orders').then((r) => r.orders || [])
 /** @param items [{ productId, quantity }] - prices are decided by the server, not us. */
 export const placeOrder = (items) => post('/api/orders', { items }).then((r) => r.order)
+
+// ---------------------------------------------------------------- site chrome
+/** Public map of admin-uploaded site images, `{ key: url }`. */
+export const getSiteImages = () => request('/api/site-images').then((r) => r.images || {})
+
+// ---------------------------------------------------------------- admin
+/**
+ * Upload a product image (admin-only).
+ * @param productId  number
+ * @param file       File from an <input type="file">
+ * @returns { imageUrl }
+ */
+export async function uploadProductImage(productId, file) {
+  const dataBase64 = await fileToBase64(file)
+  return post('/api/admin/upload-product-image', {
+    productId,
+    filename: file.name,
+    contentType: file.type,
+    dataBase64,
+  })
+}
+
+/**
+ * Upload a site chrome image (admin-only).
+ * @param key   named slot, e.g. 'home_hero'
+ * @param file  File from an <input type="file">
+ * @returns { key, imageUrl }
+ */
+export async function uploadSiteImage(key, file) {
+  const dataBase64 = await fileToBase64(file)
+  return post('/api/admin/upload-site-image', {
+    key,
+    filename: file.name,
+    contentType: file.type,
+    dataBase64,
+  })
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('Could not read the file.'))
+    reader.onload = () => {
+      // readAsDataURL gives "data:<type>;base64,<data>" — strip the prefix.
+      const result = reader.result
+      const comma = result.indexOf(',')
+      resolve(comma === -1 ? result : result.slice(comma + 1))
+    }
+    reader.readAsDataURL(file)
+  })
+}

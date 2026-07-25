@@ -107,13 +107,13 @@ function statementsFrom(sqlText) {
     .filter(Boolean)
 }
 
-// Note: `sql` is a tagged-template function. Called directly with a query string
-// and a parameter array it runs an ordinary parameterized query — which is what
-// this file needs, since the statements are built at runtime rather than written
-// as literals. There is no `sql.query()` on @neondatabase/serverless 0.x.
+// `sql.unsafe(str, params?)` is `postgres` (porsager)'s escape hatch for
+// runtime-built statements — the tagged-template form only works with literals
+// known at parse time. It is safe because we never concatenate user input into
+// `statement`; the string comes from our own schema.sql file.
 console.log('Applying schema...')
 for (const statement of statementsFrom(readFileSync(join(here, 'schema.sql'), 'utf8'))) {
-  await sql(statement)
+  await sql.unsafe(statement)
 }
 
 const counts = await seedCatalog(sql)
@@ -125,3 +125,7 @@ console.log(
     `\nNext time you only change db/catalog.js, run 'npm run db:reseed' instead -\n` +
     `it reloads the catalog without dropping accounts.\n`
 )
+
+// `postgres` (porsager) keeps a live TCP pool open; without ending it the
+// process would hang for the idle-timeout instead of exiting.
+await sql.end()

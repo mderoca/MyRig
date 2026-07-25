@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
   const ready = ref(false)
 
   const isSignedIn = computed(() => Boolean(user.value))
+  const isAdmin = computed(() => user.value?.role === 'admin')
 
   /** Called once when the app boots, to restore an existing session. */
   async function restore() {
@@ -63,5 +64,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, ready, isSignedIn, restore, signIn, signUp, signOut }
+  return { user, loading, ready, isSignedIn, isAdmin, restore, signIn, signUp, signOut }
 })

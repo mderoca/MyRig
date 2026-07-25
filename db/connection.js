@@ -1,34 +1,57 @@
 /**
- * Neon Postgres connection helper.
+ * Supabase Postgres connection helper.
  *
- * Uses @neondatabase/serverless, which talks to Neon over HTTP. That matters:
- * a normal TCP Postgres pool does not survive in a serverless function, but an
- * HTTP query does, so this works on Vercel with no connection pooling problems.
+ * Uses `postgres` (porsager) with the tagged-template `sql`...`` API. Callers
+ * remain identical to the previous Neon setup; runtime-built statements go
+ * through `sql.unsafe(str, params?)`.
  *
- * Usage in an API route:
+ * Two things that are not obvious:
  *
- *   import { sql } from '../db/connection.js'
- *   const rows = await sql`SELECT * FROM parts WHERE category = ${category}`
+ *   - `prepare: false` and `fetch_types: false` are BOTH required when talking
+ *     to Supavisor's transaction pooler (port 6543). Server-side prepared
+ *     statements and the driver's bootstrap type-discovery query both use
+ *     features the pooler drops between requests, and get silently hung.
  *
- * Values interpolated into the template literal are sent as bound parameters,
- * not string-concatenated, so this is safe against SQL injection.
+ *   - The client is cached on `globalThis` on purpose. Vite's dev SSR reloads
+ *     this module on every save (`ssrLoadModule`), which would otherwise create
+ *     a new postgres client per reload; the old client's socket keeps receiving
+ *     responses while the new client waits, so every DB query hangs forever.
+ *     Caching on globalThis makes reloads reuse the same client. In Vercel
+ *     serverless production each cold start has its own globalThis, so this is
+ *     a no-op there.
  */
 
-import { neon } from '@neondatabase/serverless'
+import postgres from 'postgres'
 
 const connectionString = process.env.DATABASE_URL
 
 /** True when DATABASE_URL is configured. Routes use this to fail with a clear message. */
 export const hasDatabase = Boolean(connectionString)
 
-/**
- * Tagged-template SQL client. Throws a readable error instead of a cryptic one
- * if someone runs the app before setting DATABASE_URL.
- */
+function createClient() {
+  return postgres(connectionString, {
+    ssl: 'require',
+    max: 1,
+    prepare: false,
+    fetch_types: false,
+    connect_timeout: 10,
+    idle_timeout: 20,
+    max_lifetime: 60 * 30,
+    onnotice: () => {},
+    // Set on every connection: no single query is allowed to run longer than
+    // 15 seconds. Without this, one wedged query on a `max: 1` client blocks
+    // every other request forever — as it did the first time this app went
+    // down after a big Storage upload held the process while PG queued behind.
+    connection: {
+      statement_timeout: '15000',
+    },
+  })
+}
+
 export const sql = hasDatabase
-  ? neon(connectionString)
+  ? (globalThis.__myrigSql ??= createClient())
   : () => {
       throw new Error(
-        'DATABASE_URL is not set. Copy .env.example to .env and add your Neon connection string, then run `npm run db:setup`.'
+        'DATABASE_URL is not set. Copy .env.example to .env and add your Supabase connection string, then run `npm run db:setup`.'
       )
     }
