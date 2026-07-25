@@ -8,8 +8,6 @@
  */
 import Logo from './Logo.vue'
 
-const year = new Date().getFullYear()
-
 const columns = [
   {
     title: 'Get Started',
@@ -69,10 +67,6 @@ const columns = [
       <p class="muted">
         Game data provided by <a href="https://www.igdb.com" target="_blank" rel="noopener">IGDB</a>.
       </p>
-      <p class="muted">
-        Prices are realistic samples for planning. Checkout is simulated - no payment is taken.
-      </p>
-      <p class="muted">&copy; {{ year }} MyRig - a student project.</p>
     </div>
   </footer>
 </template>

@@ -173,10 +173,6 @@ onMounted(async () => {
       <!-- Details -->
       <section class="details card">
         <h2>Your details</h2>
-        <p class="muted intro">
-          MyRig stores your name and email, and nothing else. There is no address, no phone
-          number and no payment information - checkout is simulated, so none of it is needed.
-        </p>
 
         <dl class="fields">
           <!-- Name -->
@@ -420,13 +416,8 @@ onMounted(async () => {
 }
 
 /* ---------- Details ---------- */
-.intro {
-  margin: var(--space-3) 0 var(--space-5);
-  max-width: 62ch;
-}
-
 .fields {
-  margin: 0;
+  margin: var(--space-4) 0 0;
 }
 
 .field {
