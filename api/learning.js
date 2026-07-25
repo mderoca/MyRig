@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     assertDatabase()
 
     const cards = await sql`
-      SELECT id, title, short_description, beginner_description, category
+      SELECT id, title, short_description, beginner_description, category, image_url
       FROM learning_cards
       ORDER BY id
     `

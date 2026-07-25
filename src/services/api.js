@@ -122,6 +122,22 @@ export async function uploadSiteImage(key, file) {
   })
 }
 
+/**
+ * Upload a learning-card image (admin-only).
+ * @param cardId  number   learning_cards.id
+ * @param file    File from an <input type="file">
+ * @returns { imageUrl }
+ */
+export async function uploadLearningCardImage(cardId, file) {
+  const dataBase64 = await fileToBase64(file)
+  return post('/api/admin/upload-learning-card-image', {
+    cardId,
+    filename: file.name,
+    contentType: file.type,
+    dataBase64,
+  })
+}
+
 function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()

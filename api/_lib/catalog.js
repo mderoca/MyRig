@@ -35,7 +35,7 @@ export async function loadCatalog() {
         FROM products
         WHERE in_stock = TRUE
         ORDER BY category, price`,
-    sql`SELECT id, title, short_description, beginner_description, category
+    sql`SELECT id, title, short_description, beginner_description, category, image_url
         FROM learning_cards
         ORDER BY id`,
     sql`SELECT id, condition_type, condition_value, upgrade_name, priority, estimated_cost, reason

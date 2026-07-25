@@ -69,7 +69,12 @@ CREATE TABLE learning_cards (
   title                TEXT NOT NULL,
   short_description    TEXT NOT NULL,
   beginner_description TEXT NOT NULL,
-  category             TEXT NOT NULL  -- matches a product category, so notes pair to parts
+  category             TEXT NOT NULL,  -- matches a product category, so notes pair to parts
+
+  -- Public URL of an illustrating image in Supabase Storage (bucket:
+  -- product-images, prefix: learning/<id>/). Nullable — cards render without
+  -- an image before one has been uploaded.
+  image_url            TEXT
 );
 
 -- Rules that generate the Upgrade Path. A rule fires when the build's

@@ -23,10 +23,12 @@
 
 import uploadProductImage from '../_lib/admin-routes/upload-product-image.js'
 import uploadSiteImage from '../_lib/admin-routes/upload-site-image.js'
+import uploadLearningCardImage from '../_lib/admin-routes/upload-learning-card-image.js'
 
 const HANDLERS = {
   'upload-product-image': uploadProductImage,
   'upload-site-image': uploadSiteImage,
+  'upload-learning-card-image': uploadLearningCardImage,
 }
 
 export default async function handler(req, res) {
