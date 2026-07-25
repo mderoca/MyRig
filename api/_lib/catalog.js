@@ -31,7 +31,7 @@ export async function loadCatalog() {
 
   const [products, learningCards, upgradeRules] = await Promise.all([
     sql`SELECT id, name, category, kind, price, tier, best_for, styles, reason, in_stock,
-               socket, ram_type, tdp, wattage
+               socket, ram_type, tdp, wattage, image_url
         FROM products
         WHERE in_stock = TRUE
         ORDER BY category, price`,

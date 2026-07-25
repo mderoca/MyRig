@@ -6,12 +6,42 @@
  */
 
 import { ref, onMounted } from 'vue'
-import { getProducts } from '../services/api.js'
+import { getProducts, getSiteImages, uploadSiteImage } from '../services/api.js'
+import { useAuthStore } from '../stores/authStore.js'
 import ProductCard from '../components/ProductCard.vue'
 import LoadingState from '../components/LoadingState.vue'
 
+const auth = useAuthStore()
+
 const featured = ref([])
 const loading = ref(true)
+const heroImage = ref('')
+
+const heroFileInput = ref(null)
+const heroUploading = ref(false)
+const heroUploadError = ref('')
+
+function pickHeroImage() {
+  heroUploadError.value = ''
+  heroFileInput.value?.click()
+}
+
+async function onHeroPicked(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  heroUploading.value = true
+  heroUploadError.value = ''
+  try {
+    const { imageUrl } = await uploadSiteImage('home_hero', file)
+    heroImage.value = imageUrl
+  } catch (err) {
+    heroUploadError.value = err.message || 'Upload failed.'
+  } finally {
+    heroUploading.value = false
+  }
+}
 
 const PATHS = [
   {
@@ -65,15 +95,22 @@ const DIFFERENTIATORS = [
 ]
 
 onMounted(async () => {
-  try {
+  // Site images and featured parts are independent — parallelise, and let one
+  // fail without taking the other with it.
+  const [productsResult, imagesResult] = await Promise.allSettled([
+    getProducts({ kind: 'part', sort: 'tier' }),
+    getSiteImages(),
+  ])
+
+  if (productsResult.status === 'fulfilled') {
     // A few high-tier parts as the "popular" rail. Not a real popularity metric -
     // there is no order-count query behind this, and pretending otherwise would be a lie.
-    const data = await getProducts({ kind: 'part', sort: 'tier' })
-    featured.value = data.products.slice(0, 4)
-  } catch {
-    featured.value = [] // the store being down should not take the homepage with it
-  } finally {
-    loading.value = false
+    featured.value = productsResult.value.products.slice(0, 4)
+  }
+  loading.value = false
+
+  if (imagesResult.status === 'fulfilled') {
+    heroImage.value = imagesResult.value.home_hero || ''
   }
 })
 </script>
@@ -100,22 +137,49 @@ onMounted(async () => {
         <p class="muted hero-note">No account needed to plan. Takes about a minute.</p>
       </div>
 
-      <div class="hero-art" aria-hidden="true">
-        <div class="art-monitor">
-          <div class="art-screen">
-            <span class="art-line w60"></span>
-            <span class="art-line w90"></span>
-            <span class="art-line w40"></span>
-            <div class="art-bar"><span></span></div>
+      <div class="hero-art" :aria-hidden="heroImage ? undefined : true">
+        <template v-if="heroImage">
+          <img :src="heroImage" alt="A gaming setup" class="hero-photo" />
+        </template>
+        <template v-else>
+          <div class="art-monitor">
+            <div class="art-screen">
+              <span class="art-line w60"></span>
+              <span class="art-line w90"></span>
+              <span class="art-line w40"></span>
+              <div class="art-bar"><span></span></div>
+            </div>
+            <div class="art-stand"></div>
           </div>
-          <div class="art-stand"></div>
-        </div>
-        <div class="art-desk">
-          <div class="art-tower"></div>
-          <div class="art-keyboard"></div>
-          <div class="art-mouse"></div>
-        </div>
-        <div class="art-glow"></div>
+          <div class="art-desk">
+            <div class="art-tower"></div>
+            <div class="art-keyboard"></div>
+            <div class="art-mouse"></div>
+          </div>
+          <div class="art-glow"></div>
+        </template>
+
+        <template v-if="auth.isAdmin">
+          <button
+            type="button"
+            class="hero-upload"
+            :disabled="heroUploading"
+            :aria-label="heroImage ? 'Replace home hero image' : 'Upload home hero image'"
+            @click="pickHeroImage"
+          >
+            {{ heroUploading ? 'Uploading...' : heroImage ? 'Replace image' : 'Upload image' }}
+          </button>
+          <input
+            ref="heroFileInput"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            hidden
+            @change="onHeroPicked"
+          />
+          <p v-if="heroUploadError" class="hero-upload-error" role="alert">
+            {{ heroUploadError }}
+          </p>
+        </template>
       </div>
     </section>
 
@@ -228,6 +292,42 @@ onMounted(async () => {
   display: grid;
   place-items: center;
   min-height: 340px;
+}
+
+.hero-photo {
+  width: 100%;
+  max-height: 480px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--glow-secondary);
+}
+
+.hero-upload {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  padding: 6px 14px;
+  background: rgba(11, 15, 25, 0.78);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.hero-upload:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.hero-upload-error {
+  position: absolute;
+  bottom: -28px;
+  right: 0;
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.75rem;
 }
 
 .art-glow {

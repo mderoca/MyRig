@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       ;[user] = await sql`
         INSERT INTO users (email, password_hash, display_name)
         VALUES (${normalizedEmail}, ${passwordHash}, ${displayName.trim()})
-        RETURNING id, email, display_name, created_at
+        RETURNING id, email, display_name, role, created_at
       `
     } catch (err) {
       // 23505 = unique_violation on users.email

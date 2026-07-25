@@ -83,3 +83,5 @@ if (wishlist > 0) {
       'Orders were not - their line items keep the name and price paid.\n'
   )
 }
+
+await sql.end()

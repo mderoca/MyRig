@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     await rateLimit(bucket, { max: 8, windowSeconds: 900 })
 
     const [user] = await sql`
-      SELECT id, email, password_hash, display_name, created_at
+      SELECT id, email, password_hash, display_name, role, created_at
       FROM users
       WHERE email = ${normalizedEmail}
     `

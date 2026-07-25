@@ -139,7 +139,7 @@ export async function getUser(req) {
   if (!Number.isInteger(userId)) return null
 
   const [user] = await sql`
-    SELECT id, email, display_name, created_at FROM users WHERE id = ${userId}
+    SELECT id, email, display_name, role, created_at FROM users WHERE id = ${userId}
   `
 
   return user || null
@@ -155,6 +155,19 @@ export async function getUser(req) {
 export async function requireUser(req) {
   const user = await getUser(req)
   if (!user) throw new AuthError('You need to sign in to do that.', 401)
+  return user
+}
+
+/**
+ * Guards an admin-only route. Returns the user, or throws AuthError(401/403).
+ *
+ * Admin status lives on the user row (users.role = 'admin'), not on the JWT,
+ * so revoking admin takes effect on the next request without needing to
+ * invalidate sessions.
+ */
+export async function requireAdmin(req) {
+  const user = await requireUser(req)
+  if (user.role !== 'admin') throw new AuthError('Admin only.', 403)
   return user
 }
 
@@ -269,5 +282,6 @@ export const publicUser = (user) => ({
   id: user.id,
   email: user.email,
   displayName: user.display_name,
+  role: user.role,
   createdAt: user.created_at,
 })

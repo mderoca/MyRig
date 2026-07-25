@@ -22,7 +22,7 @@ const productId = (value) => {
 async function list(user, res) {
   const rows = await sql`
     SELECT p.id, p.name, p.category, p.kind, p.price, p.tier, p.reason, p.in_stock,
-           w.created_at AS added_at
+           p.image_url, w.created_at AS added_at
     FROM wishlist w
     JOIN products p ON p.id = w.product_id
     WHERE w.user_id = ${user.id}

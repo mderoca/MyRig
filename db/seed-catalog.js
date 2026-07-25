@@ -13,15 +13,14 @@ import { PRODUCTS, LEARNING_CARDS, UPGRADE_RULES } from './catalog.js'
 /**
  * Insert the catalog. Assumes the three tables exist and are empty.
  *
- * `sql` is the tagged-template client from connection.js. Called directly with a
- * query string and a parameter array it runs an ordinary parameterized query,
- * which is what this needs — there is no `sql.query()` on
- * @neondatabase/serverless 0.x.
+ * `sql` is the tagged-template client from connection.js. `sql.unsafe(str, params)`
+ * runs a parameterized query built at runtime — required because the tagged-template
+ * form only accepts SQL literals known at parse time.
  */
 export async function seedCatalog(sql) {
   console.log('Seeding products...')
   for (const product of PRODUCTS) {
-    await sql(
+    await sql.unsafe(
       `INSERT INTO products (name, category, kind, price, tier, best_for, styles, reason,
                              socket, ram_type, tdp, wattage)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
@@ -44,7 +43,7 @@ export async function seedCatalog(sql) {
 
   console.log('Seeding learning cards...')
   for (const card of LEARNING_CARDS) {
-    await sql(
+    await sql.unsafe(
       `INSERT INTO learning_cards (title, short_description, beginner_description, category)
        VALUES ($1, $2, $3, $4)`,
       [card.title, card.short_description, card.beginner_description, card.category]
@@ -53,7 +52,7 @@ export async function seedCatalog(sql) {
 
   console.log('Seeding upgrade rules...')
   for (const rule of UPGRADE_RULES) {
-    await sql(
+    await sql.unsafe(
       `INSERT INTO upgrade_rules (condition_type, condition_value, upgrade_name, priority, estimated_cost, reason)
        VALUES ($1, $2, $3, $4, $5, $6)`,
       [

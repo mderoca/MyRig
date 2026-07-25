@@ -20,6 +20,34 @@ const router = useRouter()
 const wishlisted = ref(props.removable)
 const busy = ref(false)
 
+const fileInput = ref(null)
+const uploading = ref(false)
+const uploadError = ref('')
+
+function pickImage() {
+  uploadError.value = ''
+  fileInput.value?.click()
+}
+
+async function onFilePicked(event) {
+  const file = event.target.files?.[0]
+  event.target.value = '' // let the same file be re-picked after an error
+  if (!file) return
+
+  uploading.value = true
+  uploadError.value = ''
+  try {
+    const { imageUrl } = await api.uploadProductImage(props.product.id, file)
+    // Mutating the reactive product object is enough for the parent's v-for to
+    // re-render. No emit round-trip required.
+    props.product.image_url = imageUrl
+  } catch (err) {
+    uploadError.value = err.message || 'Upload failed.'
+  } finally {
+    uploading.value = false
+  }
+}
+
 const CATEGORY_LABELS = {
   cpu: 'CPU',
   gpu: 'GPU',
@@ -65,10 +93,17 @@ async function toggleWishlist() {
 
 <template>
   <article class="product">
-    <!-- A rendered placeholder rather than a stock photo: the Figma uses image
-         placeholders, and inventing product photography would be worse than none. -->
     <div class="thumb" :data-category="product.category">
-      <span class="thumb-cat">{{ label }}</span>
+      <img
+        v-if="product.image_url"
+        :src="product.image_url"
+        :alt="product.name"
+        class="thumb-img"
+        loading="lazy"
+      />
+      <!-- Fallback placeholder when no image has been uploaded yet. -->
+      <span v-else class="thumb-cat">{{ label }}</span>
+
       <button
         type="button"
         class="heart"
@@ -80,7 +115,28 @@ async function toggleWishlist() {
       >
         {{ wishlisted ? '♥' : '♡' }}
       </button>
+
+      <template v-if="auth.isAdmin">
+        <button
+          type="button"
+          class="admin-upload"
+          :disabled="uploading"
+          :aria-label="product.image_url ? `Replace image for ${product.name}` : `Upload image for ${product.name}`"
+          @click="pickImage"
+        >
+          {{ uploading ? '...' : product.image_url ? 'Replace' : 'Upload' }}
+        </button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+          hidden
+          @change="onFilePicked"
+        />
+      </template>
     </div>
+
+    <p v-if="uploadError" class="upload-error" role="alert">{{ uploadError }}</p>
 
     <div class="body">
       <div class="row-between meta">
@@ -142,6 +198,39 @@ async function toggleWishlist() {
   letter-spacing: 0.08em;
   color: rgba(249, 250, 251, 0.18);
   text-transform: uppercase;
+}
+
+.thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-upload {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  background: rgba(11, 15, 25, 0.75);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text, #f9fafb);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.admin-upload:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.upload-error {
+  padding: 4px 12px;
+  margin: 0;
+  color: var(--danger, #f87171);
+  font-size: 0.75rem;
 }
 
 .heart {
