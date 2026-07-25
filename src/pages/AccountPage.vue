@@ -3,13 +3,13 @@
  * Account settings - the Figma's Account page: a sidebar of account links, and
  * the user's details.
  *
- * The fields are read-only. There is no "edit profile" route on the server, and
- * a form that pretends to save and then does not is worse than no form. If
- * editing is wanted later, it needs a PATCH /api/auth/me with the same
- * validation as register.
+ * Name, email and password are editable. Each field's editor is inline: click
+ * "Edit" to swap the display for a form. Email change requires the current
+ * password (session-theft mitigation); name change does not; password change
+ * is its own form with a "Change password" toggle.
  */
 
-import { computed, ref, onMounted } from 'vue'
+import { computed, reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/authStore.js'
 import { listOrders, listBuilds, listWishlist } from '../services/api.js'
@@ -34,13 +34,95 @@ const LINKS = [
   { to: '/wishlist', label: 'Wishlist', key: 'wishlist', blurb: 'Parts saved for later' },
 ]
 
+// ---------- Editing state ----------
+// One reactive form per editable field. `open` toggles the inline editor.
+// `busy` disables the submit while the network request is in flight. `error`
+// shows the last server-side rejection so retries surface a real message.
+const nameForm = reactive({ open: false, value: '', busy: false, error: '', ok: '' })
+const emailForm = reactive({ open: false, value: '', currentPassword: '', busy: false, error: '', ok: '' })
+const passwordForm = reactive({ open: false, current: '', next: '', confirm: '', busy: false, error: '', ok: '' })
+
+function openNameForm() {
+  nameForm.value = auth.user.displayName
+  nameForm.error = ''
+  nameForm.ok = ''
+  nameForm.open = true
+}
+function openEmailForm() {
+  emailForm.value = auth.user.email
+  emailForm.currentPassword = ''
+  emailForm.error = ''
+  emailForm.ok = ''
+  emailForm.open = true
+}
+function openPasswordForm() {
+  passwordForm.current = ''
+  passwordForm.next = ''
+  passwordForm.confirm = ''
+  passwordForm.error = ''
+  passwordForm.ok = ''
+  passwordForm.open = true
+}
+
+async function submitName() {
+  nameForm.busy = true
+  nameForm.error = ''
+  try {
+    await auth.updateProfile({ displayName: nameForm.value })
+    nameForm.ok = 'Name updated.'
+    nameForm.open = false
+  } catch (err) {
+    nameForm.error = err.message || 'Could not update.'
+  } finally {
+    nameForm.busy = false
+  }
+}
+
+async function submitEmail() {
+  emailForm.busy = true
+  emailForm.error = ''
+  try {
+    await auth.updateProfile({
+      email: emailForm.value,
+      currentPassword: emailForm.currentPassword,
+    })
+    emailForm.ok = 'Email updated.'
+    emailForm.open = false
+  } catch (err) {
+    emailForm.error = err.message || 'Could not update.'
+  } finally {
+    emailForm.busy = false
+  }
+}
+
+async function submitPassword() {
+  passwordForm.busy = true
+  passwordForm.error = ''
+  if (passwordForm.next !== passwordForm.confirm) {
+    passwordForm.error = 'New password and confirmation do not match.'
+    passwordForm.busy = false
+    return
+  }
+  try {
+    await auth.changePassword({
+      currentPassword: passwordForm.current,
+      newPassword: passwordForm.next,
+    })
+    passwordForm.ok = 'Password changed.'
+    passwordForm.open = false
+  } catch (err) {
+    passwordForm.error = err.message || 'Could not change password.'
+  } finally {
+    passwordForm.busy = false
+  }
+}
+
 async function signOut() {
   await auth.signOut()
   router.push({ name: 'home' })
 }
 
 onMounted(async () => {
-  // Counts are decoration - if one fails, the page is still perfectly usable.
   const [orders, builds, wishlist] = await Promise.allSettled([
     listOrders(),
     listBuilds(),
@@ -97,27 +179,145 @@ onMounted(async () => {
         </p>
 
         <dl class="fields">
+          <!-- Name -->
           <div class="field">
             <dt>Name</dt>
-            <dd>{{ auth.user.displayName }}</dd>
+            <dd>
+              <template v-if="!nameForm.open">
+                <div class="row">
+                  <span>{{ auth.user.displayName }}</span>
+                  <button type="button" class="link-btn" @click="openNameForm">Edit</button>
+                </div>
+                <p v-if="nameForm.ok" class="ok small">{{ nameForm.ok }}</p>
+              </template>
+              <form v-else class="edit-form" @submit.prevent="submitName">
+                <label class="sr-only" for="acct-name">Name</label>
+                <input
+                  id="acct-name"
+                  v-model="nameForm.value"
+                  type="text"
+                  maxlength="80"
+                  required
+                  autocomplete="name"
+                />
+                <div class="edit-actions">
+                  <button type="submit" class="btn btn-sm" :disabled="nameForm.busy">
+                    {{ nameForm.busy ? 'Saving…' : 'Save' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-ghost" :disabled="nameForm.busy" @click="nameForm.open = false">
+                    Cancel
+                  </button>
+                </div>
+                <p v-if="nameForm.error" class="err small" role="alert">{{ nameForm.error }}</p>
+              </form>
+            </dd>
           </div>
+
+          <!-- Email -->
           <div class="field">
             <dt>Email</dt>
-            <dd>{{ auth.user.email }}</dd>
+            <dd>
+              <template v-if="!emailForm.open">
+                <div class="row">
+                  <span>{{ auth.user.email }}</span>
+                  <button type="button" class="link-btn" @click="openEmailForm">Change email</button>
+                </div>
+                <p v-if="emailForm.ok" class="ok small">{{ emailForm.ok }}</p>
+              </template>
+              <form v-else class="edit-form" @submit.prevent="submitEmail">
+                <label class="sr-only" for="acct-email">New email</label>
+                <input
+                  id="acct-email"
+                  v-model="emailForm.value"
+                  type="email"
+                  maxlength="200"
+                  required
+                  autocomplete="email"
+                  placeholder="New email"
+                />
+                <label class="sr-only" for="acct-email-pw">Current password</label>
+                <input
+                  id="acct-email-pw"
+                  v-model="emailForm.currentPassword"
+                  type="password"
+                  minlength="8"
+                  required
+                  autocomplete="current-password"
+                  placeholder="Current password (to confirm)"
+                />
+                <div class="edit-actions">
+                  <button type="submit" class="btn btn-sm" :disabled="emailForm.busy">
+                    {{ emailForm.busy ? 'Saving…' : 'Save' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-ghost" :disabled="emailForm.busy" @click="emailForm.open = false">
+                    Cancel
+                  </button>
+                </div>
+                <p v-if="emailForm.error" class="err small" role="alert">{{ emailForm.error }}</p>
+              </form>
+            </dd>
           </div>
+
+          <!-- Password -->
           <div class="field">
             <dt>Password</dt>
-            <dd class="muted">Stored as a bcrypt hash. Even we cannot read it.</dd>
+            <dd>
+              <template v-if="!passwordForm.open">
+                <div class="row">
+                  <span class="muted">Stored as a bcrypt hash. Even we cannot read it.</span>
+                  <button type="button" class="link-btn" @click="openPasswordForm">Change password</button>
+                </div>
+                <p v-if="passwordForm.ok" class="ok small">{{ passwordForm.ok }}</p>
+              </template>
+              <form v-else class="edit-form" @submit.prevent="submitPassword">
+                <label class="sr-only" for="acct-pw-current">Current password</label>
+                <input
+                  id="acct-pw-current"
+                  v-model="passwordForm.current"
+                  type="password"
+                  minlength="8"
+                  required
+                  autocomplete="current-password"
+                  placeholder="Current password"
+                />
+                <label class="sr-only" for="acct-pw-next">New password</label>
+                <input
+                  id="acct-pw-next"
+                  v-model="passwordForm.next"
+                  type="password"
+                  minlength="8"
+                  required
+                  autocomplete="new-password"
+                  placeholder="New password (min 8 characters)"
+                />
+                <label class="sr-only" for="acct-pw-confirm">Confirm new password</label>
+                <input
+                  id="acct-pw-confirm"
+                  v-model="passwordForm.confirm"
+                  type="password"
+                  minlength="8"
+                  required
+                  autocomplete="new-password"
+                  placeholder="Confirm new password"
+                />
+                <div class="edit-actions">
+                  <button type="submit" class="btn btn-sm" :disabled="passwordForm.busy">
+                    {{ passwordForm.busy ? 'Saving…' : 'Save' }}
+                  </button>
+                  <button type="button" class="btn btn-sm btn-ghost" :disabled="passwordForm.busy" @click="passwordForm.open = false">
+                    Cancel
+                  </button>
+                </div>
+                <p v-if="passwordForm.error" class="err small" role="alert">{{ passwordForm.error }}</p>
+              </form>
+            </dd>
           </div>
+
           <div class="field">
             <dt>Member since</dt>
             <dd>{{ memberSince }}</dd>
           </div>
         </dl>
-
-        <p class="muted small footnote">
-          Editing your details is not built yet - see the README's "Open questions".
-        </p>
       </section>
     </div>
   </div>
@@ -130,6 +330,18 @@ onMounted(async () => {
 
 .block {
   display: block;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .layout {
@@ -234,8 +446,69 @@ onMounted(async () => {
   margin: 0;
 }
 
-.footnote {
-  margin-top: var(--space-5);
+/* Row shows current value + an inline edit button. */
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.link-btn {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+/* Inline edit form when a field is being edited. */
+.edit-form {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 420px;
+}
+
+.edit-form input {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--surface-light);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+
+.edit-form input:focus {
+  outline: none;
+  border-color: var(--secondary);
+}
+
+.edit-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: 2px;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+}
+
+.err {
+  margin: 0;
+  color: var(--danger);
+}
+
+.ok {
+  margin: 6px 0 0;
+  color: var(--secondary);
 }
 
 @media (max-width: 900px) {

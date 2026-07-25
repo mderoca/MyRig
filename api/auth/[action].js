@@ -24,8 +24,17 @@ import register from '../_lib/auth-routes/register.js'
 import login from '../_lib/auth-routes/login.js'
 import logout from '../_lib/auth-routes/logout.js'
 import me from '../_lib/auth-routes/me.js'
+import updateProfile from '../_lib/auth-routes/update-profile.js'
+import changePassword from '../_lib/auth-routes/change-password.js'
 
-const HANDLERS = { register, login, logout, me }
+const HANDLERS = {
+  register,
+  login,
+  logout,
+  me,
+  'update-profile': updateProfile,
+  'change-password': changePassword,
+}
 
 export default async function handler(req, res) {
   const action = String(req.query?.action || '')

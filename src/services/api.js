@@ -45,6 +45,12 @@ export const login = (credentials) => post('/api/auth/login', credentials).then(
 export const logout = () => post('/api/auth/logout', {})
 export const me = () => request('/api/auth/me').then((r) => r.user)
 
+/** Change name and/or email. currentPassword is required when email changes. */
+export const updateProfile = (patch) => post('/api/auth/update-profile', patch).then((r) => r.user)
+
+/** Change password. Requires the current one; the session stays valid. */
+export const changePassword = (payload) => post('/api/auth/change-password', payload)
+
 // ---------------------------------------------------------------- store
 /** @param filters { category, kind, q, min, max, sort } - all optional */
 export function getProducts(filters = {}) {

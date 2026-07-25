@@ -64,5 +64,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, loading, ready, isSignedIn, isAdmin, restore, signIn, signUp, signOut }
+  /** Update name and/or email. currentPassword required when email changes. */
+  async function updateProfile(patch) {
+    user.value = await api.updateProfile(patch)
+    return user.value
+  }
+
+  /** Change password. Session cookie stays valid; no re-login required. */
+  async function changePassword(payload) {
+    await api.changePassword(payload)
+  }
+
+  return {
+    user, loading, ready, isSignedIn, isAdmin,
+    restore, signIn, signUp, signOut, updateProfile, changePassword,
+  }
 })
