@@ -24,11 +24,24 @@ const label = (category) => LABELS[category] || category
 </script>
 
 <template>
-  <article class="rec-card" :class="{ 'style-match': item.styleMatched }">
+  <!-- The whole card links to the shop, filtered to this exact product. -->
+  <RouterLink
+    class="rec-card"
+    :class="{ 'style-match': item.styleMatched }"
+    :to="{ name: 'shop', query: { q: item.name } }"
+  >
     <header class="rec-head">
       <span class="category">{{ label(item.category) }}</span>
       <span class="price">${{ item.price }}</span>
     </header>
+
+    <img
+      v-if="item.image_url"
+      class="thumb"
+      :src="item.image_url"
+      :alt="item.name"
+      loading="lazy"
+    />
 
     <h3 class="name">{{ item.name }}</h3>
 
@@ -44,7 +57,7 @@ const label = (category) => LABELS[category] || category
       <span class="beginner-label">Beginner note</span>
       <p>{{ item.beginnerNote }}</p>
     </aside>
-  </article>
+  </RouterLink>
 </template>
 
 <style scoped>
@@ -52,6 +65,8 @@ const label = (category) => LABELS[category] || category
   display: flex;
   flex-direction: column;
   height: 100%;
+  text-decoration: none;
+  color: inherit;
   padding: var(--space-4);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -89,6 +104,15 @@ const label = (category) => LABELS[category] || category
 .price {
   font-size: 1.125rem;
   color: var(--text);
+}
+
+.thumb {
+  width: 100%;
+  height: 130px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  background: var(--surface-2, transparent);
 }
 
 .name {

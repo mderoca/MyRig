@@ -511,114 +511,55 @@ function optionalExtras(goal, style) {
 // Scores
 // --------------------------------------------------------------------------
 
-function scorePerformance(items, { goal, signal, budgetTier }) {
-  const gpu = items.find((i) => i.category === 'gpu')
-  const cpu = items.find((i) => i.category === 'cpu')
-  const monitor = items.find((i) => i.category === 'monitor')
-  const ram = items.find((i) => i.category === 'ram')
+// Every score is one ratio turned into a percentage, so each can be explained
+// in a single sentence with the counts that produced it. No tuned constants.
 
-  let score = 40
-  score += [8, 16, 24, 30][tierIndex(gpu?.tier || 'budget')]
-  score += [4, 8, 12, 14][tierIndex(cpu?.tier || 'budget')]
-
-  const hz = Number((monitor?.name || '').match(/(\d+)Hz/i)?.[1] || 60)
-  const isHighRes = /1440p|4K/i.test(monitor?.name || '')
-
-  let explanation
-
-  if (goal === 'competitive_fps') {
-    score += hz >= 240 ? 18 : hz >= 144 ? 12 : 0
-    explanation =
-      hz >= 144
-        ? `Strong for competitive play - the ${monitor?.name} keeps motion clear, and the ${gpu?.name} can push enough frames to fill it.`
-        : `The parts are fine, but the ${monitor?.name} is the weak link for competitive games. A 144Hz+ screen is the upgrade that matters most.`
-  } else if (goal === 'high_graphics') {
-    score += tierIndex(gpu?.tier) >= 2 ? 18 : 6
-    score += isHighRes ? 8 : 0
-    explanation = isHighRes
-      ? `Built for visual quality - the ${gpu?.name} has the headroom to drive the ${monitor?.name} at high settings.`
-      : `The ${gpu?.name} is capable, but a 1440p screen would show much more of the detail it is rendering.`
-  } else if (goal === 'streaming') {
-    score += tierIndex(cpu?.tier) >= 2 ? 15 : 4
-    score += /32GB/.test(ram?.name || '') ? 6 : 0
-    explanation = `The ${cpu?.name} carries the encoding load, so the stream stays smooth while the game keeps running.`
-  } else if (goal === 'casual') {
-    score += 14
-    explanation = `Comfortably handles the kind of games you picked without spending on power those games will never use.`
-  } else {
-    score += 12
-    explanation = `A well-rounded build - nothing in it is a bottleneck for the mix of games you selected.`
-  }
-
-  // If the picked games disagree with the stated goal, say so honestly.
-  if (signal.dominant === 'graphics' && goal === 'casual') {
-    score -= 8
-    explanation += ` Note: some of your games are graphically demanding, so you may want more GPU than a casual build usually gets.`
-  }
+function scorePerformance(items, tiers) {
+  const rated = items.filter((i) => i.tier && tiers[i.category])
+  const onTarget = rated.filter((i) => tierIndex(i.tier) >= tierIndex(tiers[i.category]))
 
   return {
     key: 'performance',
     label: 'Performance Score',
-    score: clamp(score),
-    explanation,
+    score: clamp((onTarget.length / Math.max(1, rated.length)) * 100),
+    explanation: `${onTarget.length} of ${rated.length} parts meet or beat the quality tier your budget and goal aimed for.`,
   }
 }
 
 function scoreBudgetBalance(total, cap) {
   const ratio = total / cap
-  const score = ratio <= 1 ? 100 - (1 - ratio) * 60 : 100 - (ratio - 1) * 250
+  const score = clamp(ratio <= 1 ? ratio * 100 : 100 - (ratio - 1) * 100)
 
-  let explanation
-  if (ratio > 1.05) {
-    explanation = `This setup is $${money(total - cap)} over your budget. Dropping an accessory or a monitor tier brings it back in range.`
-  } else if (ratio >= 0.95) {
-    explanation = `This setup uses your budget almost exactly, without going over - you are getting the most out of every dollar.`
-  } else if (ratio >= 0.8) {
-    explanation = `This setup stays close to your selected budget while still including everything the setup needs.`
-  } else {
-    explanation = `This setup comes in well under budget. You have $${money(cap - total)} spare - consider putting it into the GPU or the monitor.`
-  }
+  const explanation =
+    ratio > 1
+      ? `This setup is $${money(total - cap)} over your budget.`
+      : `This setup uses $${money(total)} of your $${money(cap)} budget` +
+        (ratio >= 0.95 ? '.' : `, leaving $${money(cap - total)} to spend or save.`)
 
-  return {
-    key: 'budget',
-    label: 'Budget Balance Score',
-    score: clamp(score, 15, 100),
-    explanation,
-  }
+  return { key: 'budget', label: 'Budget Balance Score', score, explanation }
 }
 
 function scoreStyleMatch(items, style) {
-  const styled = items.filter((i) => has(i.styles, style))
-  const ratio = styled.length / Math.max(1, items.length)
-  const score = clamp(45 + ratio * 110, 40, 100)
+  const fits = items.filter((i) => has(i.styles, style) || has(i.styles, 'any'))
+  const chosen = items.filter((i) => has(i.styles, style))
 
-  const explanation = styled.length
-    ? `${styled.length} of your ${items.length} items were chosen specifically for a ${SETUP_STYLES[style]} setup, including the ${styled[0].name}.`
-    : `The parts are solid but generic. Swapping the case and peripherals for ${SETUP_STYLES[style]} options would pull the look together.`
-
-  return { key: 'style', label: 'Style Match Score', score, explanation }
+  return {
+    key: 'style',
+    label: 'Style Match Score',
+    score: clamp((fits.length / Math.max(1, items.length)) * 100),
+    explanation: `${fits.length} of ${items.length} items fit a ${SETUP_STYLES[style]} setup, ${chosen.length} of them picked specifically for it.`,
+  }
 }
 
-function scoreUpgradeability(items, upgradePath, { total, cap }) {
-  const gpu = items.find((i) => i.category === 'gpu')
-  const storage = items.find((i) => i.category === 'storage')
-
-  let score = 45
-  if (total < cap * 0.95) score += 15 // money left over is itself upgrade room
-  if (upgradePath.length >= 3) score += 15
-  if (upgradePath.length >= 5) score += 10
-  if (tierIndex(gpu?.tier || 'budget') < 3) score += 10 // GPU is not maxed out
-  if (tierIndex(storage?.tier || 'budget') < 2) score += 5
-
-  const highPriority = upgradePath.filter((u) => u.priority === 'High')
+function scoreUpgradeability(items, upgradePath) {
+  const rated = items.filter((i) => i.tier)
+  const upgradable = rated.filter((i) => tierIndex(i.tier) < TIER_ORDER.length - 1)
 
   return {
     key: 'upgradeability',
     label: 'Upgradeability Score',
-    score: clamp(score),
-    explanation: highPriority.length
-      ? `There is a clear next step: ${highPriority[0].upgrade_name.toLowerCase()}. In total we found ${upgradePath.length} sensible upgrades for this setup.`
-      : `This setup has ${upgradePath.length} suggested upgrades, but nothing urgent - it is already balanced for what you play.`,
+    score: clamp((upgradable.length / Math.max(1, rated.length)) * 100),
+    explanation: `${upgradable.length} of ${rated.length} parts still have a higher tier to move up to, with ${upgradePath.length} suggested upgrades to get there.`,
   }
 }
 
@@ -626,17 +567,17 @@ function scoreCompleteness(items) {
   const present = CORE_CATEGORIES.filter((c) => items.some((i) => i.category === c))
   const hasExtras = items.some((i) => GROUP_OF[i.category] === 'desk')
   const covered = present.length + (hasExtras ? 1 : 0)
-  const score = clamp((covered / (CORE_CATEGORIES.length + 1)) * 100)
+  const slots = CORE_CATEGORIES.length + 1
 
   const missing = CORE_CATEGORIES.filter((c) => !present.includes(c))
 
   return {
     key: 'completeness',
     label: 'Setup Completeness Score',
-    score,
+    score: clamp((covered / slots) * 100),
     explanation: missing.length
-      ? `This is not a full setup yet - it is still missing: ${missing.join(', ')}.`
-      : `This is a complete setup: PC parts, monitor, keyboard, mouse, headset and desk accessories. You could order it and be playing the same day.`,
+      ? `${covered} of ${slots} setup slots are filled - still missing: ${missing.join(', ')}.`
+      : `All ${slots} setup slots are filled: PC parts, monitor, peripherals and desk accessories.`,
   }
 }
 
@@ -848,6 +789,7 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
     group: GROUP_OF[item.category] || 'desk',
     price: money(item.price),
     tier: item.tier || null,
+    image_url: item.image_url ?? null,
     reason: item.reason,
     styles: item.styles || [],
     best_for: item.best_for || [],
@@ -865,10 +807,10 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
   const upgradePath = buildUpgradePath(upgradeRules, { budgetTier, goal, style })
 
   const scores = [
-    scorePerformance(picked, { goal, signal, budgetTier }),
+    scorePerformance(picked, tiers),
     scoreBudgetBalance(total, cap),
     scoreStyleMatch(picked, style),
-    scoreUpgradeability(picked, upgradePath, { total, cap }),
+    scoreUpgradeability(picked, upgradePath),
     scoreCompleteness(picked),
   ]
 

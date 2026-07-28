@@ -17,11 +17,7 @@ const overall = computed(() =>
     <div class="row-between head">
       <div>
         <span class="eyebrow">Setup scores</span>
-        <h2>How good is this setup, honestly?</h2>
-        <p class="muted">
-          Five scores out of 100, each with the reason behind it. They are meant to point
-          at the weak spot, not to flatter the build.
-        </p>
+        <h2>Overall score</h2>
       </div>
       <div class="overall">
         <span class="overall-number">{{ overall }}</span>

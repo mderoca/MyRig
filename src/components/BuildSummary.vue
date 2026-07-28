@@ -25,9 +25,9 @@ const STYLE_LABELS = {
 }
 
 const BUDGET_LABELS = {
-  budget: 'Budget (under $900)',
-  balanced: 'Balanced ($900-$1500)',
-  high: 'High-end ($1500+)',
+  budget: 'Budget (under $1,050)',
+  balanced: 'Balanced ($1,050-$1,700)',
+  high: 'High-end ($1,700+)',
 }
 
 const created = computed(() =>
