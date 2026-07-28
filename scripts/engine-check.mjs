@@ -205,6 +205,17 @@ if (nameOf(competitive, 'monitor') === nameOf(graphics, 'monitor')) {
   fail('competitive and high-graphics builds got the SAME monitor - no differentiation')
 }
 
+// The games must matter, not just the stated goal: a competitive quiz with
+// graphics-heavy games should get a stronger GPU than the same quiz without
+// games (the game signal acts as a secondary goal in part scoring).
+const noGames = run('competitive_fps', 'rgb', [])
+const aaaGames = run('competitive_fps', 'rgb', [CYBERPUNK])
+console.log(`competitive gpu, no games:  ${nameOf(noGames, 'gpu')}`)
+console.log(`competitive gpu, AAA games: ${nameOf(aaaGames, 'gpu')}`)
+if (nameOf(noGames, 'gpu') === nameOf(aaaGames, 'gpu')) {
+  fail('choosing graphics-heavy games did not change the GPU - the game signal is dead')
+}
+
 // ---------------------------------------------------------------------------
 // Compatibility: the checker must REJECT builds that are genuinely broken.
 //
