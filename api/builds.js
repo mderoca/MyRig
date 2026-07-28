@@ -21,6 +21,29 @@ const BUDGET_TIERS = ['budget', 'balanced', 'high']
 const GAMING_GOALS = ['competitive_fps', 'high_graphics', 'casual', 'streaming', 'balanced']
 const SETUP_STYLES = ['rgb', 'minimalist', 'white', 'cozy', 'streamer', 'esports']
 
+/**
+ * The JSON snapshot columns, parsed defensively. On a database where these
+ * columns are true jsonb the driver already returns objects and this is a
+ * pass-through; where they are text (the live Supabase table) they arrive as
+ * strings and must be parsed here, or the frontend crashes calling .filter
+ * on a string. The API's contract is arrays either way.
+ */
+const JSON_COLUMNS = ['selected_games', 'recommended_items', 'scores', 'upgrade_path']
+
+function parseJsonColumns(build) {
+  const out = { ...build, total_cost: Number(build.total_cost) }
+  for (const column of JSON_COLUMNS) {
+    if (typeof out[column] === 'string') {
+      try {
+        out[column] = JSON.parse(out[column])
+      } catch {
+        out[column] = []
+      }
+    }
+  }
+  return out
+}
+
 // ---------------------------------------------------------------- GET
 async function list(user, res) {
   const builds = await sql`
@@ -31,9 +54,7 @@ async function list(user, res) {
     ORDER BY created_at DESC
   `
 
-  return res.status(200).json({
-    builds: builds.map((build) => ({ ...build, total_cost: Number(build.total_cost) })),
-  })
+  return res.status(200).json({ builds: builds.map(parseJsonColumns) })
 }
 
 // ---------------------------------------------------------------- POST
