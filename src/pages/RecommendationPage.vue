@@ -1,8 +1,8 @@
 <script setup>
 /**
  * The payoff page. Everything the engine returned, in one scroll:
- * the items, the full-setup budget, the style summary, five scores,
- * the upgrade path, and a Save build action.
+ * the items, the full-setup budget, five scores, the upgrade path,
+ * and a Save build action.
  */
 
 import { computed, ref } from 'vue'
@@ -13,7 +13,6 @@ import { useCartStore } from '../stores/cartStore.js'
 import RecommendationCard from '../components/RecommendationCard.vue'
 import BudgetBreakdown from '../components/BudgetBreakdown.vue'
 import CompatibilityPanel from '../components/CompatibilityPanel.vue'
-import StyleSummary from '../components/StyleSummary.vue'
 import SetupScores from '../components/SetupScores.vue'
 import UpgradePath from '../components/UpgradePath.vue'
 import ErrorMessage from '../components/ErrorMessage.vue'
@@ -154,11 +153,6 @@ function startOver() {
     <!-- Budget ----------------------------------------------------------- -->
     <section class="section container">
       <BudgetBreakdown :budget="setup.budget" />
-    </section>
-
-    <!-- Style summary ---------------------------------------------------- -->
-    <section class="section container">
-      <StyleSummary :summary="setup.styleSummary" />
     </section>
 
     <!-- Scores ----------------------------------------------------------- -->

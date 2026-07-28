@@ -41,7 +41,7 @@ const statusLabel = computed(() => STATUS_COPY[props.budget.status])
     <div class="row-between head">
       <div>
         <span class="eyebrow">Full setup budget</span>
-        <h2>The whole setup, not just the tower</h2>
+        <h2>The whole setup.</h2>
       </div>
       <span class="status" :class="budget.status">{{ statusLabel }}</span>
     </div>

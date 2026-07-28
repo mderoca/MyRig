@@ -2,10 +2,8 @@
 /**
  * The compatibility verdict for a generated build.
  *
- * Shows every check that ran, INCLUDING the ones that passed, and states plainly
- * what is not checked. "Compatible" should mean "these specific things were
- * verified", not an unqualified claim - MyRig checks three rules, not every rule
- * a full build validator would.
+ * Shows every check that ran, INCLUDING the ones that passed. "Compatible"
+ * means socket, memory generation and power draw were verified.
  *
  * The engine guarantees compatible builds (incompatible parts are filtered
  * before scoring), so the failed state should never appear from the quiz. It is
@@ -31,12 +29,6 @@ defineProps({
       {{ compatibility.ok ? 'These parts fit together' : 'These parts do not fit together' }}
     </h2>
 
-    <p class="body">
-      The build draws about <strong>{{ compatibility.draw }}W</strong> under load, so it needs a
-      power supply of at least <strong>{{ compatibility.required }}W</strong> once headroom is
-      included.
-    </p>
-
     <ul class="checks">
       <li v-for="check in compatibility.checks" :key="check.key" class="check">
         <span class="mark" :class="check.ok ? 'mark-ok' : 'mark-bad'" aria-hidden="true">
@@ -48,11 +40,6 @@ defineProps({
         </div>
       </li>
     </ul>
-
-    <p v-if="compatibility.notChecked?.length" class="not-checked muted">
-      <strong>Not checked:</strong> {{ compatibility.notChecked.join(', ') }}. MyRig verifies
-      socket, memory generation and power draw - it is not a full build validator.
-    </p>
   </section>
 </template>
 
@@ -107,12 +94,6 @@ defineProps({
   margin-bottom: var(--space-2);
 }
 
-.body {
-  color: var(--muted);
-  max-width: 62ch;
-  margin-bottom: var(--space-5);
-}
-
 .checks {
   display: grid;
   gap: var(--space-4);
@@ -150,13 +131,5 @@ defineProps({
 .check p {
   font-size: 0.9375rem;
   margin-top: 2px;
-}
-
-.not-checked {
-  margin-top: var(--space-5);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border);
-  font-size: 0.875rem;
-  max-width: 62ch;
 }
 </style>
