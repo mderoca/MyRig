@@ -534,6 +534,7 @@ function optionalExtras(goal, style) {
 // Every score is one ratio turned into a percentage, so each can be explained
 // in a single sentence with the counts that produced it. No tuned constants.
 
+/** score = parts at or above their target tier ÷ parts with a tier × 100 */
 function scorePerformance(items, tiers) {
   const rated = items.filter((i) => i.tier && tiers[i.category])
   const onTarget = rated.filter((i) => tierIndex(i.tier) >= tierIndex(tiers[i.category]))
@@ -546,6 +547,7 @@ function scorePerformance(items, tiers) {
   }
 }
 
+/** score = total ÷ cap × 100 when at or under budget; 100 − percent over when over */
 function scoreBudgetBalance(total, cap) {
   const ratio = total / cap
   const score = clamp(ratio <= 1 ? ratio * 100 : 100 - (ratio - 1) * 100)
@@ -559,6 +561,7 @@ function scoreBudgetBalance(total, cap) {
   return { key: 'budget', label: 'Budget Balance Score', score, explanation }
 }
 
+/** score = items that fit the chosen style (specifically or 'any') ÷ all items × 100 */
 function scoreStyleMatch(items, style) {
   const fits = items.filter((i) => has(i.styles, style) || has(i.styles, 'any'))
   const chosen = items.filter((i) => has(i.styles, style))
@@ -571,6 +574,7 @@ function scoreStyleMatch(items, style) {
   }
 }
 
+/** score = parts below the top tier (room to upgrade) ÷ parts with a tier × 100 */
 function scoreUpgradeability(items, upgradePath) {
   const rated = items.filter((i) => i.tier)
   const upgradable = rated.filter((i) => tierIndex(i.tier) < TIER_ORDER.length - 1)
@@ -583,6 +587,7 @@ function scoreUpgradeability(items, upgradePath) {
   }
 }
 
+/** score = slots filled ÷ 12 × 100 (11 core categories + one for desk accessories) */
 function scoreCompleteness(items) {
   const present = CORE_CATEGORIES.filter((c) => items.some((i) => i.category === c))
   const hasExtras = items.some((i) => GROUP_OF[i.category] === 'desk')
@@ -832,6 +837,8 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
   // ---- 5. Upgrade path + scores ----
   const upgradePath = buildUpgradePath(upgradeRules, { budgetTier, goal, style })
 
+  // The five grades for the finished build. Each is one ratio as a percentage;
+  // the page shows their average as the overall score.
   const scores = [
     scorePerformance(picked, tiers),
     scoreBudgetBalance(total, cap),
