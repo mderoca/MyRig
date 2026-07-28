@@ -17,9 +17,9 @@ const STORAGE_KEY = 'myrig_state'
 /** The quiz options. These strings are the contract with the API - keep in sync
  *  with BUDGET_TIERS / GAMING_GOALS / SETUP_STYLES in api/_lib/engine.js. */
 export const BUDGET_OPTIONS = [
-  { value: 'budget', label: 'Budget', detail: 'Under $900', blurb: 'Get playing for as little as possible.' },
-  { value: 'balanced', label: 'Balanced', detail: '$900 - $1500', blurb: 'The sweet spot for most people.' },
-  { value: 'high', label: 'High-end', detail: '$1500+', blurb: 'No compromises on the parts that matter.' },
+  { value: 'budget', label: 'Budget', detail: 'Under $1,050', blurb: 'Get playing for as little as possible.' },
+  { value: 'balanced', label: 'Balanced', detail: '$1,050 - $1,700', blurb: 'The sweet spot for most people.' },
+  { value: 'high', label: 'High-end', detail: '$1,700+', blurb: 'No compromises on the parts that matter.' },
 ]
 
 export const GOAL_OPTIONS = [

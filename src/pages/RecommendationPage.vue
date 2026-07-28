@@ -28,7 +28,7 @@ const setup = computed(() => store.setup)
 const GROUP_TITLES = {
   tower: 'The PC',
   monitor: 'The screen',
-  peripherals: 'What you touch',
+  peripherals: 'Peripherals',
   desk: 'The desk',
 }
 

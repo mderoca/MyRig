@@ -4,6 +4,7 @@
  * then POST /api/recommend and move to the recommendation page.
  */
 
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   useSetupStore,
@@ -11,6 +12,7 @@ import {
   GOAL_OPTIONS,
   STYLE_OPTIONS,
 } from '../stores/setupStore.js'
+import { getProducts } from '../services/api.js'
 import GameSearch from '../components/GameSearch.vue'
 import SelectedGames from '../components/SelectedGames.vue'
 import LoadingState from '../components/LoadingState.vue'
@@ -18,6 +20,42 @@ import ErrorMessage from '../components/ErrorMessage.vue'
 
 const store = useSetupStore()
 const router = useRouter()
+
+// Shop photos shown on the budget and style options. Purely illustrative -
+// if the catalog fails to load, the quiz works exactly as before, just plainer.
+const products = ref([])
+
+onMounted(async () => {
+  try {
+    products.value = (await getProducts()).products || []
+  } catch {
+    // Images are decoration; the quiz must not break over them.
+  }
+})
+
+/** The part tier each budget lands on (same mapping the engine uses). */
+const TIER_OF_BUDGET = { budget: 'budget', balanced: 'mid', high: 'high' }
+
+/** A few representative shop photos for what this budget buys. */
+function budgetSamples(budget) {
+  const tier = TIER_OF_BUDGET[budget]
+  const samples = []
+  for (const category of ['gpu', 'case', 'monitor']) {
+    const hit = products.value.find(
+      (p) => p.image_url && p.tier === tier && p.category === category
+    )
+    if (hit) samples.push(hit)
+  }
+  return samples
+}
+
+/** One shop photo that captures the style - the case sets the look of a setup. */
+function styleImage(style) {
+  const pool = products.value.filter(
+    (p) => p.image_url && Array.isArray(p.styles) && p.styles.includes(style)
+  )
+  return (pool.find((p) => p.category === 'case') || pool[0])?.image_url || null
+}
 
 async function generate() {
   const ok = await store.generate()
@@ -70,6 +108,16 @@ function choose(field, value) {
             <span class="option-label">{{ option.label }}</span>
             <span class="option-detail">{{ option.detail }}</span>
             <span class="option-blurb muted">{{ option.blurb }}</span>
+            <span v-if="budgetSamples(option.value).length" class="option-photos">
+              <img
+                v-for="product in budgetSamples(option.value)"
+                :key="product.id"
+                :src="product.image_url"
+                :alt="product.name"
+                :title="product.name"
+                loading="lazy"
+              />
+            </span>
           </label>
         </div>
       </fieldset>
@@ -130,6 +178,13 @@ function choose(field, value) {
               @change="choose('setupStyle', option.value)"
             />
             <span class="style-swatch" aria-hidden="true"></span>
+            <img
+              v-if="styleImage(option.value)"
+              class="style-photo"
+              :src="styleImage(option.value)"
+              :alt="`${option.label} example from the shop`"
+              loading="lazy"
+            />
             <span class="option-label">{{ option.label }}</span>
             <span class="option-blurb muted">{{ option.blurb }}</span>
           </label>
@@ -299,6 +354,29 @@ function choose(field, value) {
     var(--accent-b, var(--secondary)),
     var(--accent-c, var(--primary))
   );
+}
+
+.style-photo {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+
+.option-photos {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.option-photos img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
 }
 
 .divider {
