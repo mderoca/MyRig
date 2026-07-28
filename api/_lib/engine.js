@@ -363,8 +363,28 @@ function allocationFor(goal) {
   )
 }
 
-/** Does this item suit the goal? 3 = built for it, 1 = fits anything, 0 = no. */
-const goalFit = (item, goal) => (has(item.best_for, goal) ? 3 : has(item.best_for, 'any') ? 1 : 0)
+/** The goal the selected games imply, when the signal is strong enough. */
+const SIGNAL_GOAL = { competitive: 'competitive_fps', graphics: 'high_graphics', casual: 'casual' }
+
+function signalGoalOf(signal) {
+  const dominant = signal?.dominant
+  return dominant && signal[dominant] >= 0.5 ? SIGNAL_GOAL[dominant] : null
+}
+
+/**
+ * Does this item suit the goal? 3 = built for the stated goal, 2 = built for
+ * what the games imply, 1 = fits anything, 0 = no. The stated goal always
+ * outranks the games, but the games break the tie against generic parts -
+ * without the middle rung, the game signal never survives part selection.
+ */
+const goalFit = (item, goal, signalGoal) =>
+  has(item.best_for, goal)
+    ? 3
+    : signalGoal && has(item.best_for, signalGoal)
+      ? 2
+      : has(item.best_for, 'any')
+        ? 1
+        : 0
 
 /** Does this item suit the style? Same scale. */
 const styleFit = (item, style) => (has(item.styles, style) ? 3 : has(item.styles, 'any') ? 1 : 0)
@@ -377,7 +397,7 @@ const styleFit = (item, style) => (has(item.styles, style) ? 3 : has(item.styles
  * Affordability is weighted hard so the build stays near budget, but a category
  * always returns something (worst case, the cheapest option).
  */
-function pickItem(candidates, { goal, style, targetTier, allowance }) {
+function pickItem(candidates, { goal, signalGoal, style, targetTier, allowance }) {
   if (!candidates.length) return null
 
   const scored = candidates.map((item) => {
@@ -386,7 +406,7 @@ function pickItem(candidates, { goal, style, targetTier, allowance }) {
     const affordable = money(item.price) <= allowance
 
     const score =
-      goalFit(item, goal) +
+      goalFit(item, goal, signalGoal) +
       styleFit(item, style) +
       Math.max(0, tier) * 2 +
       (affordable ? 3 : -6)
@@ -423,7 +443,7 @@ function pickItem(candidates, { goal, style, targetTier, allowance }) {
  *
  * Mutates `picked` in place. Returns the money spent.
  */
-function upgradePass(picked, pool, { goal, style, leftover }) {
+function upgradePass(picked, pool, { goal, signalGoal, style, leftover }) {
   const order = UPGRADE_PRIORITY[goal] || UPGRADE_PRIORITY.balanced
   let budget = leftover
   let spent = 0
@@ -450,7 +470,7 @@ function upgradePass(picked, pool, { goal, style, leftover }) {
           (candidate) =>
             candidate.category === category &&
             tierIndex(candidate.tier) > tierIndex(current.tier) &&
-            goalFit(candidate, goal) >= goalFit(current, goal) &&
+            goalFit(candidate, goal, signalGoal) >= goalFit(current, goal, signalGoal) &&
             styleFit(candidate, style) >= styleFit(current, style) &&
             money(candidate.price) - money(current.price) <= budget &&
             isCompatible(candidate, rest)
@@ -689,32 +709,46 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
 
   const cap = BUDGET_TIERS[budgetTier].cap
   const signal = readGameSignal(games)
+  const signalGoal = signalGoalOf(signal)
   const tiers = targetTiers(budgetTier, goal, signal)
   const allocation = allocationFor(goal)
 
   const findAccessory = (want) =>
     accessories.find((a) => a.name === want || a.category === want)
 
-  // ---- 1. Reserve money for the setup, before the tower spends it all ----
-  // This is the whole argument of the app in three lines. A streaming setup
-  // needs a microphone more than it needs a faster GPU, and a cozy setup with
-  // no lamp is not a cozy setup. So the money for those comes off the table
-  // BEFORE the core parts get to bid for any of it - otherwise the tower always
-  // wins, and you have built a PC rather than planned a setup.
+  // ---- 1. Buy the setup essentials before the tower can spend anything ----
+  // This is the whole argument of the app. A streaming setup needs a
+  // microphone more than it needs a faster GPU, and a cozy setup with no lamp
+  // is not a cozy setup. The essentials are not "reserved" - they are BOUGHT,
+  // up front, because an estimate the core picks can overshoot is a reserve in
+  // name only (that is exactly how a streaming build once shipped without its
+  // webcam). The style flourishes keep a smaller estimated slice.
   const price = (item) => money(item.price)
   const sumPrice = (items) => items.reduce((sum, item) => sum + price(item), 0)
 
   const essentials = essentialExtras(goal, style).map(findAccessory).filter(Boolean)
   const optionals = optionalExtras(goal, style).map(findAccessory).filter(Boolean)
 
-  // Essentials get up to a fifth of the budget; the style flourishes get a
-  // smaller slice, because they are nice-to-have rather than load-bearing.
-  const essentialReserve = Math.min(sumPrice(essentials), cap * 0.2)
   const styleReserve = Math.min(sumPrice(optionals), cap * 0.12)
-  const reserve = essentialReserve + styleReserve
 
-  const coreBudget = cap - reserve
   const picked = []
+  let remaining = cap
+
+  const buy = (list) => {
+    for (const item of list) {
+      if (picked.some((p) => p.name === item.name)) continue
+
+      // Extras stop when the money stops. This is what keeps the total honest.
+      if (price(item) > remaining) continue
+
+      picked.push(item)
+      remaining -= price(item)
+    }
+  }
+
+  buy(essentials)
+
+  const coreBudget = remaining - styleReserve
 
   // ---- 2. The nine core categories, each with its slice of the core budget ----
   for (const [category, share] of Object.entries(allocation)) {
@@ -731,6 +765,7 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
 
     const item = pickItem(pool, {
       goal,
+      signalGoal,
       style,
       targetTier: tiers[category],
       // Slack, because allocations are guidance rather than a hard wall.
@@ -741,11 +776,11 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
   }
 
   // ---- 3. Spend anything left over on the parts this goal cares about ----
-  // Only the core budget is on offer here - the upgrade pass may not raid the
-  // reserve, or we would be back to a tower with nothing around it.
-  const headroom = coreBudget - sumPrice(picked)
+  // The style flourishes' slice stays off the table, or the upgrade pass
+  // would spend it and the look of the setup loses to raw parts every time.
+  const headroom = cap - sumPrice(picked) - styleReserve
   if (headroom > 0) {
-    upgradePass(picked, parts, { goal, style, leftover: headroom })
+    upgradePass(picked, parts, { goal, signalGoal, style, leftover: headroom })
   }
 
   // ---- 3b. Re-fit the power supply to what the build actually became ----
@@ -753,18 +788,9 @@ export function recommendSetup({ quiz, parts, accessories, learningCards = [], u
   // the pre-upgrade build would be undersized for the one we are shipping.
   fitPowerSupply(picked, parts)
 
-  // ---- 4. Buy the extras: essentials first, then style flourishes ----
-  let remaining = cap - sumPrice(picked)
-
-  for (const item of [...essentials, ...optionals]) {
-    if (picked.some((p) => p.name === item.name)) continue
-
-    // Extras stop when the money stops. This is what keeps the total honest.
-    if (price(item) > remaining) continue
-
-    picked.push(item)
-    remaining -= price(item)
-  }
+  // ---- 4. Buy the style flourishes with whatever is genuinely left ----
+  remaining = cap - sumPrice(picked)
+  buy(optionals)
 
   // ---- 5. Budget breakdown ----
   const total = picked.reduce((sum, i) => sum + money(i.price), 0)
