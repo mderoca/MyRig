@@ -260,7 +260,7 @@ onMounted(async () => {
             <dd>
               <template v-if="!passwordForm.open">
                 <div class="row">
-                  <span class="muted">Stored as a bcrypt hash. Even we cannot read it.</span>
+                  <span class="muted">********</span>
                   <button type="button" class="link-btn" @click="openPasswordForm">Change password</button>
                 </div>
                 <p v-if="passwordForm.ok" class="ok small">{{ passwordForm.ok }}</p>
